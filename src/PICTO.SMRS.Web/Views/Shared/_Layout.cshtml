@@ -1,0 +1,70 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PICTO: SMRS</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/PICTO.SMRS.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="smrs-app-body">
+    <div class="d-flex flex-column min-vh-100">
+        <header class="flex-shrink-0">
+            <nav class="navbar navbar-expand-sm navbar-dark smrs-navbar border-bottom shadow-sm">
+                <div class="container-fluid align-items-center">
+                    <div class="d-flex align-items-center flex-grow-1">
+                        <button class="navbar-toggler d-lg-none me-2 border-0 shadow-none px-2"
+                                type="button" data-bs-toggle="offcanvas" data-bs-target="#smrsNavOffcanvas"
+                                aria-controls="smrsNavOffcanvas" aria-expanded="false" aria-label="Open menu">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <a class="navbar-brand fw-semibold text-gold mb-0" asp-area="" asp-controller="Home" asp-action="Index">PICTO: SMRS</a>
+                    </div>
+                    <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle account menu">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-end">
+                        <partial name="_LoginPartial" />
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <div class="offcanvas offcanvas-start smrs-sidenav-offcanvas d-lg-none" tabindex="-1" id="smrsNavOffcanvas"
+             aria-labelledby="smrsNavOffcanvasLabel">
+            <div class="offcanvas-header border-bottom border-light-subtle py-2">
+                <h2 class="offcanvas-title h6 mb-0 text-navy" id="smrsNavOffcanvasLabel">Menu</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body p-0 d-flex flex-column">
+                @await Html.PartialAsync("_SideNav", "oc")
+            </div>
+        </div>
+
+        <div class="d-flex flex-grow-1 min-vh-0 smrs-app-main">
+            <aside class="smrs-sidenav d-none d-lg-flex flex-column flex-shrink-0" aria-label="Main navigation">
+                @await Html.PartialAsync("_SideNav", "")
+            </aside>
+            <div class="flex-grow-1 d-flex flex-column min-w-0 smrs-app-content">
+                <main role="main" class="flex-grow-1 pb-3 pt-3 pt-lg-4">
+                    <div class="container-fluid px-3 px-lg-4">
+                        @RenderBody()
+                    </div>
+                </main>
+                <footer class="border-top footer text-muted flex-shrink-0 py-2 bg-transparent">
+                    <div class="container-fluid px-3 px-lg-4 small">
+                        &copy; @DateTime.UtcNow.Year PICTO · Supply Monitoring &amp; Requisition System
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

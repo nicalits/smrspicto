@@ -1,0 +1,327 @@
+@using PICTO.SMRS.Web.Models.Requisitions
+@using PICTO.SMRS.Web.Models.Inventory
+@model RequisitionCreateViewModel
+@{
+    ViewData["Title"] = "New requisition slip";
+}
+
+<div class="smrs-page smrs-page--wide">
+    <div class="smrs-card smrs-card--page smrs-card--tight">
+        <section class="smrs-section">
+            <form asp-action="Create" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                <div>
+                    <table class="table table-bordered align-middle mb-2 smrs-slip-table">
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="bg-light text-center">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                        <div class="fw-semibold text-navy flex-grow-1 text-center">Requisition Slip</div>
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <label asp-for="RsNo" class="small fw-semibold text-muted mb-0"></label>
+                                                <input asp-for="RsNo" class="form-control form-control-sm" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" />
+                                            </div>
+                                            <select asp-for="ItemType" class="form-select form-select-sm" style="min-width: 210px;">
+                                                <option value="@RequisitionItemType.ItSupplies">IT Supplies</option>
+                                                <option value="@RequisitionItemType.OfficeSupplies">Office Supplies</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <span asp-validation-for="RsNo" class="text-danger small d-block mt-1 text-end"></span>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td colspan="6" class="bg-light fw-semibold text-navy text-center">Requestor's information</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="small text-muted">Date</div>
+                                    <input class="form-control form-control-sm" value="@Model.Date.ToString("yyyy-MM-dd")" readonly />
+                                </td>
+                                <td>
+                                    <div class="small text-muted">Name</div>
+                                    <input class="form-control form-control-sm" value="@Model.RequestorName" readonly />
+                                </td>
+                                <td>
+                                    <div class="small text-muted">Position</div>
+                                    <input class="form-control form-control-sm" value="@Model.RequestorPosition" readonly />
+                                </td>
+                                <td>
+                                    <div class="small text-muted">Division</div>
+                                    <input class="form-control form-control-sm" value="@Model.RequestorDivision" readonly />
+                                </td>
+                                <td colspan="2">
+                                    <div class="small text-muted">Signature</div>
+                                    <input class="form-control form-control-sm" value="" readonly />
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td colspan="6" class="bg-light fw-semibold text-navy text-center">Request Information</td>
+                            </tr>
+                            <tr class="bg-light text-center">
+                                <td class="fw-semibold" style="width: 26%;">Item Name</td>
+                                <td class="fw-semibold" style="width: 16%;">Serial No.</td>
+                                <td class="fw-semibold" style="width: 8%;">Qty</td>
+                                <td class="fw-semibold" style="width: 10%;">Unit</td>
+                                <td class="fw-semibold" style="width: 25%;">Purpose</td>
+                                <td class="fw-semibold" style="width: 15%;">RF No.</td>
+                            </tr>
+                        </tbody>
+                        <tbody id="rqItemsBody">
+                            @for (var i = 0; i < (Model.Items?.Count ?? 0); i++)
+                            {
+                                <tr class="rq-item-row">
+                                    <td>
+                                        <select asp-for="Items[i].InventoryItemId" class="form-select form-select-sm rq-item-select">
+                                            <option value="0">Select item…</option>
+                                        </select>
+                                        <span asp-validation-for="Items[i].InventoryItemId" class="text-danger small"></span>
+                                    </td>
+                                    <td>
+                                        <input asp-for="Items[i].SerialNo" class="form-control form-control-sm rq-serial" readonly />
+                                        <span asp-validation-for="Items[i].SerialNo" class="text-danger small"></span>
+                                    </td>
+                                    <td>
+                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm" type="number" min="1" />
+                                        <span asp-validation-for="Items[i].Qty" class="text-danger small"></span>
+                                    </td>
+                                    <td>
+                                        <select asp-for="Items[i].Unit" class="form-select form-select-sm rq-unit-select">
+                                            <option value="">Select unit…</option>
+                                            @foreach (var unit in Enum.GetValues<InventoryUnit>())
+                                            {
+                                                <option value="@unit.GetDisplayName()">@unit.GetDisplayName()</option>
+                                            }
+                                        </select>
+                                        <span asp-validation-for="Items[i].Unit" class="text-danger small"></span>
+                                    </td>
+                                    <td>
+                                        <input asp-for="Items[i].Purpose" class="form-control form-control-sm" />
+                                        <span asp-validation-for="Items[i].Purpose" class="text-danger small"></span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <input asp-for="Items[i].RfNo" class="form-control form-control-sm" />
+                                            <button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button>
+                                        </div>
+                                        <span asp-validation-for="Items[i].RfNo" class="text-danger small"></span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tbody>
+                            <tr>
+                                <td colspan="6">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="rqAddRow">Add row</button>
+                                        <span asp-validation-for="Items" class="text-danger small"></span>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <div class="small text-muted">MR/ICS To:</div>
+                                    <input class="form-control form-control-sm" value="" />
+                                </td>
+                                <td colspan="3">
+                                    <label asp-for="Office" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="Office" class="form-control form-control-sm" />
+                                    <span asp-validation-for="Office" class="text-danger small"></span>
+                                </td>
+                                <td colspan="2">
+                                    <label asp-for="MrIcsPosition" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="MrIcsPosition" class="form-control form-control-sm" />
+                                    <span asp-validation-for="MrIcsPosition" class="text-danger small"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-light-subtle">
+                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">Submit</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var body = document.getElementById('rqItemsBody');
+            var addBtn = document.getElementById('rqAddRow');
+            if (!body || !addBtn) return;
+
+            function renumber() {
+                var rows = body.querySelectorAll('tr.rq-item-row');
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var inputs = row.querySelectorAll('input[name], select[name]');
+                    inputs.forEach(function (inp) {
+                        var name = inp.getAttribute('name');
+                        if (!name) return;
+                        inp.setAttribute('name', name.replace(/Items\[\d+\]/g, 'Items[' + i + ']'));
+                        var id = inp.getAttribute('id');
+                        if (id) inp.setAttribute('id', id.replace(/Items_\d+__/g, 'Items_' + i + '__'));
+                    });
+
+                    var spans = row.querySelectorAll('span[data-valmsg-for]');
+                    spans.forEach(function (sp) {
+                        var f = sp.getAttribute('data-valmsg-for');
+                        if (!f) return;
+                        sp.setAttribute('data-valmsg-for', f.replace(/Items\[\d+\]/g, 'Items[' + i + ']'));
+                    });
+                }
+            }
+
+            var itemsCache = { type: null, items: [] };
+
+            function getTypeSelect() {
+                return document.querySelector('select[name="ItemType"]');
+            }
+
+            async function loadItemsForType(typeVal) {
+                if (itemsCache.type === typeVal && itemsCache.items.length)
+                    return itemsCache.items;
+
+                itemsCache.type = typeVal;
+                itemsCache.items = [];
+                try {
+                    var res = await fetch('@Url.Action("InventoryItems")' + '?type=' + encodeURIComponent(typeVal), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) return [];
+                    itemsCache.items = await res.json();
+                } catch (e) {
+                    itemsCache.items = [];
+                }
+                return itemsCache.items;
+            }
+
+            function applyOptions(selectEl, items) {
+                var current = selectEl.value || '0';
+                selectEl.innerHTML = '<option value="0">Select item…</option>';
+                for (var i = 0; i < items.length; i++) {
+                    var it = items[i];
+                    var opt = document.createElement('option');
+                    opt.value = String(it.id);
+                    opt.textContent = it.name;
+                    opt.setAttribute('data-serialized', it.isSerialized ? 'true' : 'false');
+                    opt.setAttribute('data-unit', it.unit || '');
+                    selectEl.appendChild(opt);
+                }
+                selectEl.value = current;
+                if (selectEl.value !== current) selectEl.value = '0';
+            }
+
+            async function syncAllSelects() {
+                var typeSel = getTypeSelect();
+                var typeVal = typeSel ? typeSel.value : '';
+                var items = await loadItemsForType(typeVal);
+                document.querySelectorAll('.rq-item-select').forEach(function (sel) {
+                    applyOptions(sel, items);
+                });
+            }
+
+            async function syncSerialAndUnit(row) {
+                var sel = row.querySelector('.rq-item-select');
+                var serial = row.querySelector('.rq-serial');
+                var unit = row.querySelector('.rq-unit-select');
+                if (!sel || !serial) return;
+
+                var opt = sel.options[sel.selectedIndex];
+                var serialized = opt && opt.getAttribute('data-serialized') === 'true';
+                serial.readOnly = true;
+
+                if (unit) {
+                    var itemUnit = opt ? (opt.getAttribute('data-unit') || '') : '';
+                    if (itemUnit) unit.value = itemUnit;
+                }
+
+                if (!serialized || sel.value === '0') {
+                    serial.value = '';
+                    return;
+                }
+
+                try {
+                    var res = await fetch('@Url.Action("InventoryItemSerials")' + '?id=' + encodeURIComponent(sel.value), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) return;
+                    var serials = await res.json();
+                    if (Array.isArray(serials) && serials.length > 0) {
+                        serial.value = String(serials[0] || '');
+                    } else {
+                        serial.value = '';
+                    }
+                } catch (e) {
+                    serial.value = '';
+                }
+            }
+
+            function makeRow() {
+                var tr = document.createElement('tr');
+                tr.className = 'rq-item-row';
+                tr.innerHTML =
+                    '<td><select class="form-select form-select-sm rq-item-select" name="Items[0].InventoryItemId"><option value="0">Select item…</option></select><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
+                    '<td><input class="form-control form-control-sm rq-serial" name="Items[0].SerialNo" readonly /><span class="text-danger small" data-valmsg-for="Items[0].SerialNo" data-valmsg-replace="true"></span></td>' +
+                    '<td><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
+                    '<td><select class="form-select form-select-sm rq-unit-select" name="Items[0].Unit"><option value="">Select unit…</option>@foreach (var unit in Enum.GetValues<InventoryUnit>()) {<option value="@unit.GetDisplayName()">@unit.GetDisplayName()</option>}</select><span class="text-danger small" data-valmsg-for="Items[0].Unit" data-valmsg-replace="true"></span></td>' +
+                    '<td><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
+                    '<td><div class="d-flex gap-2"><input class="form-control form-control-sm" name="Items[0].RfNo" /><button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button></div><span class="text-danger small" data-valmsg-for="Items[0].RfNo" data-valmsg-replace="true"></span></td>';
+                return tr;
+            }
+
+            addBtn.addEventListener('click', function () {
+                body.appendChild(makeRow());
+                renumber();
+                syncAllSelects();
+            });
+
+            document.addEventListener('change', function (e) {
+                var typeSel = e.target.closest('select[name="ItemType"]');
+                if (typeSel) {
+                    itemsCache.type = null;
+                    itemsCache.items = [];
+                    syncAllSelects();
+                    return;
+                }
+
+                var itemSel = e.target.closest('.rq-item-select');
+                if (itemSel) {
+                    var row = itemSel.closest('tr');
+                    if (row) syncSerialAndUnit(row);
+                }
+            });
+
+            body.addEventListener('click', function (e) {
+                var btn = e.target.closest('.rq-remove-row');
+                if (!btn) return;
+                var tr = btn.closest('tr');
+                if (!tr) return;
+                tr.remove();
+                if (body.querySelectorAll('tr.rq-item-row').length === 0) {
+                    body.appendChild(makeRow());
+                }
+                renumber();
+                syncAllSelects();
+            });
+
+            syncAllSelects().then(function () {
+                body.querySelectorAll('tr.rq-item-row').forEach(function (r) {
+                    syncSerialAndUnit(r);
+                });
+            });
+        })();
+    </script>
+}
+

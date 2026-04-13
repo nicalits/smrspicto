@@ -1,0 +1,518 @@
+:root {
+  --smrs-navy: #1a3a5c;
+  --smrs-blue: #2e6da4;
+  --smrs-gold: #c8a84b;
+  --smrs-bg: #eaf1f8;
+}
+
+html {
+  font-size: 14px;
+  position: relative;
+  min-height: 100%;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+body {
+  margin-bottom: 60px;
+  background-color: var(--smrs-bg);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body.smrs-app-body {
+  margin-bottom: 0;
+}
+
+.smrs-app-main {
+  background-color: var(--smrs-bg);
+}
+
+.smrs-sidenav {
+  width: 17.5rem;
+  max-width: 100%;
+  background: #f0f3f6;
+  border-right: 1px solid rgba(26, 58, 92, 0.1);
+  min-height: 0;
+}
+
+.smrs-sidenav-offcanvas {
+  --bs-offcanvas-width: min(18rem, 92vw);
+}
+
+.smrs-sidenav-inner {
+  min-height: 100%;
+}
+
+.smrs-sidenav-brand {
+  background: linear-gradient(180deg, #fafbfc 0%, #f0f3f6 100%);
+}
+
+.smrs-sidenav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(26, 58, 92, 0.35) transparent;
+}
+
+.smrs-sidenav-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.smrs-sidenav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(26, 58, 92, 0.28);
+  border-radius: 6px;
+}
+
+.smrs-sidenav-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 1rem 0.35rem;
+  border: 0;
+  background: transparent;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6a7580;
+  text-align: left;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.smrs-sidenav-heading:hover {
+  color: var(--smrs-navy);
+  background: rgba(46, 109, 164, 0.07);
+}
+
+.smrs-sidenav-heading.collapsed .smrs-sidenav-caret {
+  transform: rotate(-90deg);
+}
+
+.smrs-sidenav-caret {
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: transform 0.2s ease;
+}
+
+.smrs-sidenav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0 0.5rem 0.85rem;
+}
+
+.smrs-sidenav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem 0.5rem 0.75rem;
+  border-radius: 0.4rem;
+  color: var(--smrs-navy);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  border-left: 4px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.smrs-sidenav-link:hover {
+  background: rgba(46, 109, 164, 0.12);
+  color: var(--smrs-blue);
+}
+
+.smrs-sidenav-link:focus-visible {
+  outline: 2px solid var(--smrs-blue);
+  outline-offset: 1px;
+}
+
+.smrs-sidenav-link--active {
+  background: rgba(46, 109, 164, 0.18);
+  color: #1a6bab;
+  border-left-color: var(--smrs-blue);
+  font-weight: 600;
+}
+
+.smrs-sidenav-icon {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.smrs-navbar {
+  background-color: var(--smrs-navy) !important;
+}
+
+.text-navy {
+  color: var(--smrs-navy) !important;
+}
+
+.text-gold {
+  color: var(--smrs-gold) !important;
+}
+
+.btn-gold {
+  background-color: var(--smrs-gold);
+  border-color: var(--smrs-gold);
+  color: #1a3a5c;
+}
+
+.btn-gold:hover {
+  background-color: #b8963f;
+  border-color: #b8963f;
+  color: #1a3a5c;
+}
+
+.smrs-card {
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.25rem 1rem rgba(26, 58, 92, 0.08);
+  padding: 2rem;
+  border: 1px solid rgba(26, 58, 92, 0.08);
+}
+
+.smrs-page {
+  max-width: 1040px;
+  margin-inline: auto;
+  padding-inline: 0.5rem;
+}
+
+.smrs-page.smrs-page--wide {
+  max-width: 1320px;
+}
+
+@media (min-width: 576px) {
+  .smrs-page {
+    padding-inline: 0;
+  }
+}
+
+.smrs-slip-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.smrs-slip-table td,
+.smrs-slip-table th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.smrs-card.smrs-card--page {
+  padding: 2rem 2.25rem;
+}
+
+.smrs-card.smrs-card--page.smrs-card--tight {
+  padding: 1.25rem 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .smrs-card.smrs-card--page {
+    padding: 2.5rem 3rem;
+  }
+
+  .smrs-card.smrs-card--page.smrs-card--tight {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+.smrs-page-header .h3 {
+  font-weight: 600;
+}
+
+.smrs-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(26, 58, 92, 0.1);
+}
+
+.smrs-section:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.smrs-section-heading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--smrs-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1.75rem;
+}
+
+/* Formal directory table — never use overflow:hidden here: it overrides
+   Bootstrap's .table-responsive (overflow-x:auto) and clips the last column. */
+.smrs-table-panel {
+  border: 1px solid rgba(26, 58, 92, 0.2);
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(26, 58, 92, 0.06);
+}
+
+.smrs-table-panel .table-responsive {
+  margin: 0;
+}
+
+.smrs-table {
+  margin-bottom: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  border-collapse: separate;
+  border-spacing: 0;
+  --smrs-table-cell-x: 1.35rem;
+  --smrs-table-cell-y: 1.05rem;
+}
+
+@media (min-width: 992px) {
+  .smrs-table {
+    --smrs-table-cell-x: 1.5rem;
+    --smrs-table-cell-y: 1.2rem;
+  }
+}
+
+.smrs-table thead th {
+  background: var(--smrs-navy);
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: var(--smrs-table-cell-y) var(--smrs-table-cell-x);
+  /* Subtle rule under header — avoid gold band; it read as a stray “line” on the page */
+  border-bottom: 2px solid rgba(255, 255, 255, 0.22);
+  white-space: nowrap;
+  vertical-align: middle;
+  font-family: inherit;
+}
+
+.smrs-table thead th:first-child {
+  padding-inline-start: calc(var(--smrs-table-cell-x) + 0.15rem);
+}
+
+.smrs-table thead th:last-child {
+  padding-inline-end: calc(var(--smrs-table-cell-x) + 0.15rem);
+}
+
+.smrs-table tbody td {
+  padding: var(--smrs-table-cell-y) var(--smrs-table-cell-x);
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(26, 58, 92, 0.1);
+  color: #1a2836;
+}
+
+.smrs-table tbody td:first-child {
+  padding-inline-start: calc(var(--smrs-table-cell-x) + 0.15rem);
+  font-weight: 500;
+  color: var(--smrs-navy);
+}
+
+.smrs-table tbody td:first-child.smrs-inventory-td--thumb {
+  font-weight: 400;
+  color: inherit;
+}
+
+.smrs-inventory-td--name {
+  font-weight: 500;
+  color: var(--smrs-navy);
+}
+
+.smrs-table tbody tr:nth-child(even) {
+  background: rgba(234, 241, 248, 0.55);
+}
+
+.smrs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.smrs-table tbody tr:hover {
+  background: rgba(200, 168, 75, 0.12);
+}
+
+.smrs-table tbody tr:hover td {
+  border-bottom-color: rgba(26, 58, 92, 0.12);
+}
+
+.smrs-account-row {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.smrs-account-row:hover:not(.smrs-account-row--active) {
+  background: rgba(200, 168, 75, 0.14) !important;
+}
+
+/* Mouse click leaves :focus on <tr>; outline + negative offset draws a broken line on table rows. */
+.smrs-account-row:focus {
+  outline: none;
+}
+
+.smrs-account-row:focus-visible {
+  outline: 2px solid rgba(200, 168, 75, 0.75);
+  outline-offset: 2px;
+}
+
+/* Highlight selected row: paint <td> cells — many browsers ignore <tr> background. */
+.smrs-table tbody tr.smrs-account-row--active {
+  background-color: rgba(200, 168, 75, 0.34) !important;
+}
+
+.smrs-table tbody tr.smrs-account-row--active td {
+  background-color: rgba(200, 168, 75, 0.34) !important;
+  border-bottom-color: rgba(26, 58, 92, 0.14);
+}
+
+.smrs-table tbody tr.smrs-account-row--active:hover td {
+  background-color: rgba(200, 168, 75, 0.42) !important;
+}
+
+.smrs-table tbody tr.smrs-account-row--active td:first-child {
+  box-shadow: inset 4px 0 0 var(--smrs-navy);
+}
+
+/* Popover menu (not Bootstrap .dropdown-menu — that stays display:none until .show) */
+.smrs-account-row-menu {
+  position: fixed;
+  z-index: 1040;
+  min-width: 12rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.35rem 0;
+  background: #fff;
+  border: 1px solid rgba(26, 58, 92, 0.18);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1.25rem rgba(26, 58, 92, 0.14);
+}
+
+.smrs-account-row-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.9375rem;
+  text-align: start;
+  text-decoration: none;
+  color: var(--smrs-navy);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.smrs-account-row-menu__item:hover,
+.smrs-account-row-menu__item:focus {
+  background: rgba(234, 241, 248, 0.9);
+  color: var(--smrs-navy);
+}
+
+.smrs-account-row-menu__item--danger {
+  color: #842029;
+}
+
+.smrs-account-row-menu__item--danger:hover,
+.smrs-account-row-menu__item--danger:focus {
+  background: rgba(220, 53, 69, 0.08);
+  color: #6a1a21;
+}
+
+.smrs-account-row-menu__note {
+  padding: 0.5rem 1.15rem 0.65rem;
+  line-height: 1.35;
+  max-width: 16rem;
+}
+
+.smrs-auth-body {
+  background: linear-gradient(160deg, var(--smrs-navy) 0%, #0f2438 45%, var(--smrs-bg) 45%);
+  min-height: 100vh;
+  margin-bottom: 0;
+}
+
+.smrs-auth-body .btn-outline-secondary {
+  border-color: rgba(26, 58, 92, 0.25);
+  color: var(--smrs-navy);
+}
+
+.smrs-auth-body .btn-outline-secondary:hover {
+  background-color: rgba(26, 58, 92, 0.06);
+  border-color: rgba(26, 58, 92, 0.35);
+  color: var(--smrs-navy);
+}
+
+.smrs-auth-header {
+  background: transparent;
+}
+
+.smrs-wordmark {
+  font-size: 1.35rem;
+  letter-spacing: 0.12em;
+}
+
+.tracking-wide {
+  letter-spacing: 0.08em;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.2rem rgba(200, 168, 75, 0.45);
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+  color: var(--bs-secondary-color);
+  text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+  text-align: start;
+}
+
+.smrs-inventory-thumb {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  vertical-align: middle;
+}
+
+.smrs-inventory-thumb--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.25rem;
+  border: 1px dashed rgba(26, 58, 92, 0.2);
+  background: rgba(234, 241, 248, 0.6);
+}
+
+.smrs-table tbody tr.smrs-inventory-row--low td {
+  background-color: rgba(255, 193, 7, 0.12) !important;
+}
+
+.smrs-table tbody tr.smrs-inventory-row--low:hover td {
+  background-color: rgba(255, 193, 7, 0.2) !important;
+}
+
+.smrs-inventory-form .form-label {
+  font-weight: 500;
+  color: var(--smrs-navy);
+  font-size: 0.875rem;
+}
+
+.smrs-table--inventory {
+  --smrs-table-cell-x: 0.75rem;
+  --smrs-table-cell-y: 0.65rem;
+  font-size: 0.82rem;
+}
+
+.smrs-table--inventory thead th {
+  white-space: normal;
+  line-height: 1.2;
+  font-size: 0.64rem;
+}
+
+.smrs-table--inventory .btn {
+  white-space: nowrap;
+}

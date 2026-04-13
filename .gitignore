@@ -1,0 +1,16 @@
+bin/
+obj/
+**/bin/
+**/obj/
+.vs/
+.vscode/
+artifacts/
+_build_out/
+_build_out2/
+_bin_nav/
+_obj_nav/
+*.user
+*.suo
+*.pdb
+*.db
+*.log

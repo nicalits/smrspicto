@@ -1,0 +1,112 @@
+@model AddInventoryItemViewModel
+@{
+    var isEdit = (bool?)ViewData["EditMode"] == true;
+    var itemId = (int?)ViewData["ItemId"];
+    ViewData["Title"] = isEdit ? "Edit inventory item" : "Add inventory item";
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header">
+            <h1 class="h3 text-navy mb-1">@(isEdit ? "Edit inventory item" : "Add inventory item")</h1>
+        </header>
+
+        <section class="smrs-section">
+            <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@itemId" method="post" enctype="multipart/form-data" novalidate class="smrs-inventory-form">
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label asp-for="ItemName" class="form-label"></label>
+                        <input asp-for="ItemName" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="ItemName" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Brand" class="form-label"></label>
+                        <input asp-for="Brand" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="Brand" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Quantity" class="form-label"></label>
+                        <input asp-for="Quantity" class="form-control" type="number" min="0" id="invQuantity" />
+                        <span asp-validation-for="Quantity" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Unit" class="form-label"></label>
+                        <select asp-for="Unit" class="form-select" asp-items="Html.GetEnumSelectList<InventoryUnit>()"></select>
+                        <span asp-validation-for="Unit" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="LowStockLevel" class="form-label"></label>
+                        <input asp-for="LowStockLevel" class="form-control" type="number" min="0" />
+                        <span asp-validation-for="LowStockLevel" class="text-danger small"></span>
+                        <div class="form-text">Alert when available quantity is at or below this level.</div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="SupplyGroup" class="form-label"></label>
+                        <select asp-for="SupplyGroup" class="form-select" asp-items="Html.GetEnumSelectList<SupplyGroup>()"></select>
+                        <span asp-validation-for="SupplyGroup" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Location" class="form-label"></label>
+                        <input asp-for="Location" class="form-control" autocomplete="off" />
+                        <span asp-validation-for="Location" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Image" class="form-label"></label>
+                        <input asp-for="Image" class="form-control" type="file" accept="image/jpeg,image/png,image/gif,image/webp" />
+                        <span asp-validation-for="Image" class="text-danger small"></span>
+                        <div class="form-text">JPG, PNG, GIF, or WebP. Max 5 MB.</div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="5" placeholder="Description, technical details, part numbers — all included in keyword search."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                        <div class="form-text">Searches match this text together with item name, brand, location, and serial numbers.</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input asp-for="IsSerialized" class="form-check-input" id="invSerialized" />
+                            <label asp-for="IsSerialized" class="form-check-label" for="invSerialized"></label>
+                        </div>
+                    </div>
+                    <div class="col-12 d-none" id="invSerialBlock">
+                        <label asp-for="SerialNumbersRaw" class="form-label"></label>
+                        <textarea asp-for="SerialNumbersRaw" class="form-control font-monospace" rows="6" id="invSerials" placeholder="One serial per line"></textarea>
+                        <span asp-validation-for="SerialNumbersRaw" class="text-danger small"></span>
+                        <div class="form-text" id="invSerialHint">Line count must match quantity (<span id="invQtyLabel">0</span> lines).</div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-light-subtle">
+                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">@(isEdit ? "Save changes" : "Save item")</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var chk = document.getElementById('invSerialized');
+            var block = document.getElementById('invSerialBlock');
+            var qty = document.getElementById('invQuantity');
+            var label = document.getElementById('invQtyLabel');
+            function sync() {
+                if (!block || !label || !qty) return;
+                label.textContent = String(qty.value || '0');
+                if (chk && chk.checked) {
+                    block.classList.remove('d-none');
+                } else {
+                    block.classList.add('d-none');
+                }
+            }
+            if (chk) chk.addEventListener('change', sync);
+            if (qty) qty.addEventListener('input', sync);
+            sync();
+        })();
+    </script>
+}

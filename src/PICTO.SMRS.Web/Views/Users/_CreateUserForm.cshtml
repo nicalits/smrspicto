@@ -1,0 +1,51 @@
+@model CreateUserViewModel
+
+<form asp-action="Create" method="post" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+    <div class="mb-3">
+        <label asp-for="UserName" class="form-label"></label>
+        <input asp-for="UserName" class="form-control" autocomplete="username" />
+        <span asp-validation-for="UserName" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="EmployeeName" class="form-label"></label>
+        <input asp-for="EmployeeName" class="form-control" autocomplete="name" />
+        <span asp-validation-for="EmployeeName" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" autocomplete="off" />
+        <span asp-validation-for="Email" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Position" class="form-label"></label>
+        <input asp-for="Position" class="form-control" autocomplete="organization-title" />
+        <span asp-validation-for="Position" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Division" class="form-label"></label>
+        <input asp-for="Division" class="form-control" autocomplete="organization" />
+        <span asp-validation-for="Division" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Role" class="form-label"></label>
+        <select asp-for="Role" asp-items="Model.RoleOptions" class="form-select"></select>
+        <span asp-validation-for="Role" class="text-danger small"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" class="form-control" autocomplete="new-password" />
+        <span asp-validation-for="Password" class="text-danger small"></span>
+    </div>
+    <div class="mb-4">
+        <label asp-for="ConfirmPassword" class="form-label"></label>
+        <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+    </div>
+
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-gold text-navy fw-semibold">Create user</button>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>

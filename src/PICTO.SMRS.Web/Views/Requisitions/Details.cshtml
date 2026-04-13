@@ -1,0 +1,93 @@
+@using PICTO.SMRS.Web.Models.Requisitions
+@model RequisitionDetailsViewModel
+@{
+    var rsNo = string.IsNullOrWhiteSpace(Model.RsNo) ? $"#{Model.Id}" : Model.RsNo;
+    ViewData["Title"] = $"Requisition {rsNo}";
+    var canTakeAction = (bool?)ViewData["CanTakeAction"] == true;
+    var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
+    var badgeClass = Model.Status switch
+    {
+        RequisitionStatus.Approved => "bg-success",
+        RequisitionStatus.Rejected => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <h1 class="h3 text-navy mb-1">Requisition @rsNo</h1>
+                <p class="text-muted small mb-0">Submitted request details and approval status.</p>
+            </div>
+            <span class="badge @badgeClass fs-6">@Model.Status</span>
+        </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+        @if (TempData["ErrorMessage"] is string err)
+        {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
+        }
+
+        <section class="smrs-section mt-4">
+            <div class="row g-3 small">
+                <div class="col-md-3"><span class="text-muted d-block">Date</span><span class="fw-semibold">@Model.Date.ToString("yyyy-MM-dd")</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Type</span><span class="fw-semibold">@(Model.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Requestor</span><span class="fw-semibold">@Model.RequestorName</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Division</span><span class="fw-semibold">@Model.RequestorDivision</span></div>
+            </div>
+        </section>
+
+        <section class="smrs-section mt-3">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Serial No.</th>
+                            <th>Qty</th>
+                            <th>Unit</th>
+                            <th>Purpose</th>
+                            <th>RF No.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.ItemName</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.SerialNo) ? "—" : item.SerialNo)</td>
+                                <td>@item.Qty</td>
+                                <td>@item.Unit</td>
+                                <td>@item.Purpose</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.RfNo) ? "—" : item.RfNo)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="smrs-section mt-3">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="@backAction" class="btn btn-outline-secondary">Back</a>
+                @if (canTakeAction)
+                {
+                    <form asp-action="Approve" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-success">Approve</button>
+                    </form>
+                    <form asp-action="Reject" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </form>
+                }
+            </div>
+        </section>
+    </div>
+</div>

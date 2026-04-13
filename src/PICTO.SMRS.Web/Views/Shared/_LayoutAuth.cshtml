@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PICTO: SMRS</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="smrs-auth-body d-flex flex-column min-vh-100">
+    <header class="smrs-auth-header text-center py-4 mb-0 flex-shrink-0">
+        <div class="smrs-wordmark text-gold fw-bold tracking-wide">PICTO</div>
+        <div class="text-white-50 small">Supply Monitoring &amp; Requisition System</div>
+    </header>
+    <main class="container flex-grow-1 d-flex align-items-center justify-content-center py-4 py-md-5">
+        @RenderBody()
+    </main>
+    <footer class="text-center text-muted small pb-4 pt-2 flex-shrink-0 mt-auto">
+        &copy; @DateTime.UtcNow.Year Provincial ICT Office · Internal use
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

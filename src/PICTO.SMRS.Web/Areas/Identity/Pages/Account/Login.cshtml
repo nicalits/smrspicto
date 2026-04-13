@@ -1,0 +1,36 @@
+@page
+@model LoginModel
+@{
+    Layout = "/Views/Shared/_LayoutAuth.cshtml";
+    ViewData["Title"] = "Sign in";
+}
+
+<div class="smrs-card w-100" style="max-width: 420px;">
+    <h1 class="h4 mb-1 text-navy">Sign in</h1>
+    <p class="text-muted small mb-4">Use your assigned SMRS username and password.</p>
+    <form id="account" method="post" novalidate>
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+        <div class="mb-3">
+            <label asp-for="Input.UserName" class="form-label"></label>
+            <input asp-for="Input.UserName" class="form-control" autocomplete="username" autofocus />
+            <span asp-validation-for="Input.UserName" class="text-danger small"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label"></label>
+            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+        </div>
+        <div class="form-check mb-4">
+            <input class="form-check-input" asp-for="Input.RememberMe" />
+            <label class="form-check-label" asp-for="Input.RememberMe"></label>
+        </div>
+        <div class="d-grid gap-2">
+            <button id="login-submit" type="submit" class="btn btn-gold text-navy fw-semibold">Sign in</button>
+            <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Back to home</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

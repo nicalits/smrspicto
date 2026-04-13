@@ -1,0 +1,90 @@
+@model string?
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+@{
+    var sx = Model ?? "";
+    var isOffcanvas = string.Equals(sx, "oc", StringComparison.Ordinal);
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var canManageUsers = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.UserManagement)).Succeeded;
+    var canViewInventory = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.InventoryAccess)).Succeeded;
+    var canApproveRequisitions = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionApproval)).Succeeded;
+    string ActiveClass(string c, string a, string? a2 = null)
+    {
+        var cOk = string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase);
+        var aOk = string.Equals(act, a, StringComparison.OrdinalIgnoreCase)
+            || (a2 != null && string.Equals(act, a2, StringComparison.OrdinalIgnoreCase));
+        return cOk && aOk ? "smrs-sidenav-link--active" : "";
+    }
+    string ActiveUserManagement()
+    {
+        if (!string.Equals(ctrl, "Users", StringComparison.OrdinalIgnoreCase))
+            return "";
+        if (string.Equals(act, "Create", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(act, "Edit", StringComparison.OrdinalIgnoreCase))
+            return "smrs-sidenav-link--active";
+        return "";
+    }
+}
+
+<div class="smrs-sidenav-inner d-flex flex-column h-100">
+    <div class="smrs-sidenav-brand px-3 py-3 border-bottom border-light-subtle">
+        <span class="fw-semibold text-navy">PICTO</span>
+        <span class="d-block small text-muted">Supply Monitoring &amp; Requisition</span>
+    </div>
+    <div class="smrs-sidenav-scroll flex-grow-1 overflow-y-auto py-2">
+        @* Add grouped sections (collapse + .smrs-sidenav-list) here as features ship. *@
+        <div class="smrs-sidenav-section">
+            <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavPrimary@(sx)" aria-expanded="true" aria-controls="smrsNavPrimary@(sx)">
+                <span>Navigation</span>
+                <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+            </button>
+            <div class="collapse show" id="smrsNavPrimary@(sx)">
+                <nav class="smrs-sidenav-list">
+                    <a asp-controller="Home" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Home", "Index")"
+                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                        <span>Home</span>
+                    </a>
+                    <a asp-controller="Requisitions" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Requisitions", "Index", "Create")"
+                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.83V19h2v-4.17l1.59 1.59L16 15.01 12.01 11 8 15.01z"/></svg>
+                        <span>Requisitions</span>
+                    </a>
+                    @if (canApproveRequisitions)
+                    {
+                        <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-sidenav-link @ActiveClass("Requisitions", "Approvals")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 16.17l-3.88-3.88L3.71 13.7 9 19l12-12-1.41-1.41z"/></svg>
+                            <span>Approvals</span>
+                        </a>
+                    }
+                    <a asp-controller="Borrow" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Borrow", "Index")"
+                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4L13 5v3H6v2h7v3l3.99-4z"/></svg>
+                        <span>Borrow</span>
+                    </a>
+                    @if (canViewInventory)
+                    {
+                        <a asp-controller="Inventory" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Inventory", "Index", "Create")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 12 7.4l3.38 4.6L17 10.83 14.92 8H20v6z"/></svg>
+                            <span>Inventory</span>
+                        </a>
+                    }
+                    @if (canManageUsers)
+                    {
+                        <a asp-controller="Users" asp-action="Create" class="smrs-sidenav-link @ActiveUserManagement()"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                            <span>User Management</span>
+                        </a>
+                    }
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>

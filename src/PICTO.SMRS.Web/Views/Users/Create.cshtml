@@ -1,0 +1,249 @@
+@model ManageUsersViewModel
+@{
+    ViewData["Title"] = "User accounts";
+    var editUserUrlBase = Url.Action("Edit", "Users") ?? "";
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header">
+            <h1 class="h3 text-navy mb-1">User accounts</h1>
+            <p class="text-muted small mb-0">Add new logins and maintain the staff directory.</p>
+        </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+        @if (TempData["ErrorMessage"] is string err)
+        {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
+        }
+
+        <section class="smrs-section">
+            <h2 class="smrs-section-heading">Add account</h2>
+            <div class="mx-auto" style="max-width: 520px;">
+                <partial name="_CreateUserForm" model="Model.Form" />
+            </div>
+        </section>
+
+        <section class="smrs-section" id="accounts">
+            <h2 class="smrs-section-heading">Directory</h2>
+            @if (Model.Accounts is null || Model.Accounts.Count == 0)
+            {
+                <p class="text-muted small mb-0">No accounts yet.</p>
+            }
+            else
+            {
+                <p class="text-muted small mb-3 mb-md-4">Click a row to open <strong>Edit</strong> or <strong>Delete</strong>.</p>
+                <div class="table-responsive smrs-table-panel">
+                    <table class="table table-borderless align-middle smrs-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Employee name</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Position</th>
+                                <th scope="col">Division</th>
+                                <th scope="col">Roles</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Accounts)
+                            {
+                                var isSelf = string.Equals(row.Id, Model.CurrentUserId, StringComparison.Ordinal);
+                                <tr class="smrs-account-row"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                    aria-label="Open actions for @row.UserName"
+                                    data-user-id="@row.Id"
+                                    data-user-name="@row.UserName"
+                                    data-can-delete="@(isSelf ? "false" : "true")">
+                                    <td>@row.UserName</td>
+                                    <td>@row.EmployeeName</td>
+                                    <td>@row.Email</td>
+                                    <td>@row.Position</td>
+                                    <td>@row.Division</td>
+                                    <td>@row.Roles</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+<div id="accountRowMenu" class="smrs-account-row-menu d-none" role="menu">
+    <a class="smrs-account-row-menu__item" id="accountRowMenuEdit" href="#" role="menuitem">Edit account</a>
+    <button type="button" class="smrs-account-row-menu__item smrs-account-row-menu__item--danger" id="accountRowMenuDelete" role="menuitem">Delete account</button>
+    <div class="smrs-account-row-menu__note text-muted small d-none" id="accountRowMenuNoDelete" role="note">
+        Signed-in account cannot be deleted.
+    </div>
+</div>
+
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h2 class="modal-title h5 text-navy" id="deleteUserModalLabel">Delete account</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="mb-0">
+                    Remove <strong id="deleteUserDisplayName"></strong> from SMRS? This cannot be undone.
+                </p>
+                <form asp-action="Delete" method="post" id="deleteUserForm" class="d-none">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteUserId" value="" />
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="deleteUserForm" class="btn btn-danger">Yes, delete account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var editBase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(editUserUrlBase.TrimEnd('/')));
+            var menu = document.getElementById('accountRowMenu');
+            var tbody = document.querySelector('.smrs-table-panel tbody');
+            if (!menu || !tbody) return;
+
+            var currentRow = null;
+
+            function closeMenu() {
+                menu.classList.add('d-none');
+                menu.style.display = 'none';
+                if (currentRow) {
+                    if (document.activeElement === currentRow) {
+                        currentRow.blur();
+                    }
+                    currentRow.classList.remove('smrs-account-row--active');
+                    currentRow.setAttribute('aria-expanded', 'false');
+                    currentRow = null;
+                }
+            }
+
+            function positionMenu(tr) {
+                var rect = tr.getBoundingClientRect();
+                menu.classList.remove('d-none');
+                menu.style.display = 'block';
+                var mw = menu.offsetWidth || 200;
+                var mh = menu.offsetHeight || 120;
+                var left = rect.left;
+                var top = rect.bottom + 6;
+                if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
+                if (left < 8) left = 8;
+                if (top + mh > window.innerHeight - 8) top = rect.top - mh - 6;
+                if (top < 8) top = 8;
+                menu.style.left = left + 'px';
+                menu.style.top = top + 'px';
+            }
+
+            function openMenu(tr) {
+                if (currentRow === tr) {
+                    closeMenu();
+                    return;
+                }
+                closeMenu();
+                currentRow = tr;
+                tr.classList.add('smrs-account-row--active');
+                tr.setAttribute('aria-expanded', 'true');
+
+                var id = tr.getAttribute('data-user-id') || '';
+                var name = tr.getAttribute('data-user-name') || '';
+                var canDelete = tr.getAttribute('data-can-delete') === 'true';
+
+                var editLink = document.getElementById('accountRowMenuEdit');
+                editLink.setAttribute('href', editBase + '/' + encodeURIComponent(id));
+
+                var delBtn = document.getElementById('accountRowMenuDelete');
+                var noDel = document.getElementById('accountRowMenuNoDelete');
+                if (canDelete) {
+                    delBtn.classList.remove('d-none');
+                    noDel.classList.add('d-none');
+                    delBtn.setAttribute('data-user-id', id);
+                    delBtn.setAttribute('data-user-name', name);
+                } else {
+                    delBtn.classList.add('d-none');
+                    noDel.classList.remove('d-none');
+                }
+
+                positionMenu(tr);
+            }
+
+            tbody.addEventListener('click', function (e) {
+                var tr = e.target.closest('tr.smrs-account-row');
+                if (!tr) return;
+                e.preventDefault();
+                openMenu(tr);
+            });
+
+            tbody.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                var tr = e.target.closest('tr.smrs-account-row');
+                if (!tr || e.target !== tr) return;
+                e.preventDefault();
+                openMenu(tr);
+            });
+
+            document.getElementById('accountRowMenuEdit').addEventListener('click', function () {
+                closeMenu();
+            });
+
+            document.getElementById('accountRowMenuDelete').addEventListener('click', function () {
+                var id = this.getAttribute('data-user-id') || '';
+                var name = this.getAttribute('data-user-name') || '';
+                document.getElementById('deleteUserId').value = id;
+                document.getElementById('deleteUserDisplayName').textContent = name;
+                closeMenu();
+                var modalEl = document.getElementById('deleteUserModal');
+                if (modalEl && window.bootstrap)
+                    window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            });
+
+            document.addEventListener('click', function (e) {
+                window.setTimeout(function () {
+                    if (!currentRow) return;
+                    if (e.target.closest('#accountRowMenu')) return;
+                    if (e.target.closest('tr.smrs-account-row')) return;
+                    closeMenu();
+                }, 0);
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeMenu();
+            });
+
+            window.addEventListener('resize', function () {
+                if (currentRow && !menu.classList.contains('d-none')) positionMenu(currentRow);
+            });
+
+            window.addEventListener('scroll', function () {
+                closeMenu();
+            }, true);
+
+            var modal = document.getElementById('deleteUserModal');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function (event) {
+                    var btn = event.relatedTarget;
+                    if (!btn) return;
+                    var id = btn.getAttribute('data-user-id');
+                    if (id == null) return;
+                    document.getElementById('deleteUserId').value = id;
+                    document.getElementById('deleteUserDisplayName').textContent =
+                        btn.getAttribute('data-user-name') || '';
+                });
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,143 @@
+@model InventoryIndexViewModel
+@{
+    ViewData["Title"] = "Inventory";
+    string NextDir(string sortKey) =>
+        string.Equals(Model.SortBy, sortKey, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase)
+            ? "desc"
+            : "asc";
+    string SortIndicator(string sortKey)
+    {
+        if (!string.Equals(Model.SortBy, sortKey, StringComparison.OrdinalIgnoreCase))
+            return "↕";
+        return string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "↑" : "↓";
+    }
+}
+
+<div class="smrs-page smrs-page--wide">
+    <div class="smrs-card smrs-card--page smrs-card--tight">
+        <header class="smrs-page-header d-flex flex-column flex-md-row align-items-md-start justify-content-md-between gap-3">
+            <div>
+                <h1 class="h3 text-navy mb-1">Inventory</h1>
+            </div>
+            <div class="flex-shrink-0">
+                <a asp-action="Create" class="btn btn-gold text-navy fw-semibold px-4">Add item</a>
+            </div>
+        </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+
+        <section class="smrs-section">
+            <h2 class="smrs-section-heading">Search &amp; filter</h2>
+            <form asp-action="Index" method="get" class="row g-3 align-items-end">
+                <div class="col-12 col-lg-6">
+                    <label for="q" class="form-label">Keywords</label>
+                    <input type="search" class="form-control" id="q" name="q" value="@Model.SearchQuery"
+                           placeholder="e.g. 32GB" autocomplete="off" />
+                </div>
+                <div class="col-12 col-md-6 col-lg-4">
+                    <label for="column" class="form-label">Search in</label>
+                    <select class="form-select" id="column" name="column" asp-items="Model.ColumnOptions"></select>
+                </div>
+                <div class="col-12 col-md-6 col-lg-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="smrs-section">
+            <h2 class="smrs-section-heading">Stock list</h2>
+            @if (Model.Items.Count == 0)
+            {
+                <p class="text-muted small mb-0">No items match your search, or inventory is empty. <a asp-action="Create">Add an item</a> to get started.</p>
+            }
+            else
+            {
+                <div class="table-responsive smrs-table-panel">
+                    <table class="table table-borderless align-middle smrs-table smrs-table--inventory mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="text-center" style="width:4rem;">Photo</th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="item" asp-route-dir="@NextDir("item")" class="text-reset text-decoration-none">Item @SortIndicator("item")</a>
+                                </th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="brand" asp-route-dir="@NextDir("brand")" class="text-reset text-decoration-none">Brand @SortIndicator("brand")</a>
+                                </th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="group" asp-route-dir="@NextDir("group")" class="text-reset text-decoration-none">Group @SortIndicator("group")</a>
+                                </th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="unit" asp-route-dir="@NextDir("unit")" class="text-reset text-decoration-none">Unit @SortIndicator("unit")</a>
+                                </th>
+                                <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="qty" asp-route-dir="@NextDir("qty")" class="text-reset text-decoration-none">Qty @SortIndicator("qty")</a>
+                                </th>
+                                <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="reserved" asp-route-dir="@NextDir("reserved")" class="text-reset text-decoration-none">Reserved @SortIndicator("reserved")</a>
+                                </th>
+                                <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="available" asp-route-dir="@NextDir("available")" class="text-reset text-decoration-none">Available @SortIndicator("available")</a>
+                                </th>
+                                <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="lowstock" asp-route-dir="@NextDir("lowstock")" class="text-reset text-decoration-none">Low stock @SortIndicator("lowstock")</a>
+                                </th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="location" asp-route-dir="@NextDir("location")" class="text-reset text-decoration-none">Location @SortIndicator("location")</a>
+                                </th>
+                                <th scope="col">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="description" asp-route-dir="@NextDir("description")" class="text-reset text-decoration-none">Description @SortIndicator("description")</a>
+                                </th>
+                                <th scope="col" class="text-center">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="serialized" asp-route-dir="@NextDir("serialized")" class="text-reset text-decoration-none">Serialized @SortIndicator("serialized")</a>
+                                </th>
+                                <th scope="col" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Items)
+                            {
+                                var trClass = row.IsLowStock ? "smrs-inventory-row--low" : "";
+                                <tr class="@trClass">
+                                    <td class="text-center smrs-inventory-td--thumb">
+                                        @if (!string.IsNullOrEmpty(row.ImagePath))
+                                        {
+                                            <img class="smrs-inventory-thumb" src="~/@row.ImagePath" alt="" />
+                                        }
+                                        else
+                                        {
+                                            <span class="smrs-inventory-thumb smrs-inventory-thumb--empty text-muted small" aria-hidden="true">—</span>
+                                        }
+                                    </td>
+                                    <td class="smrs-inventory-td--name">@row.ItemName</td>
+                                    <td>@(row.Brand ?? "—")</td>
+                                    <td>@row.SupplyGroupDisplay</td>
+                                    <td>@row.UnitDisplay</td>
+                                    <td class="text-end">@row.Quantity</td>
+                                    <td class="text-end">@row.ReservedQuantity</td>
+                                    <td class="text-end fw-semibold">@row.AvailableQuantity</td>
+                                    <td class="text-end">@row.LowStockLevel</td>
+                                    <td>@(row.Location ?? "—")</td>
+                                    <td class="small text-muted" title="@row.Description">@(string.IsNullOrEmpty(row.Description) ? "—" : (row.Description.Length > 80 ? row.Description[..80] + "…" : row.Description))</td>
+                                    <td class="text-center">@(row.IsSerialized ? "Yes" : "No")</td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex gap-1">
+                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" onsubmit="return confirm('Delete this inventory item?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</div>
