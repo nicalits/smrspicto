@@ -77,8 +77,15 @@
                             {
                                 <tr class="rq-item-row">
                                     <td>
-                                        <select asp-for="Items[i].InventoryItemId" class="form-select form-select-sm rq-item-select">
-                                            <option value="0">Select item…</option>
+                                        <input asp-for="Items[i].InventoryItemId" type="hidden" class="rq-item-id" />
+                                        <select class="form-select form-select-sm rq-item-name-select mb-1">
+                                            <option value="">Select item...</option>
+                                        </select>
+                                        <select class="form-select form-select-sm rq-item-brand-select mb-1" disabled>
+                                            <option value="">Select brand...</option>
+                                        </select>
+                                        <select class="form-select form-select-sm rq-item-spec-select" disabled>
+                                            <option value="0">Select specification...</option>
                                         </select>
                                         <span asp-validation-for="Items[i].InventoryItemId" class="text-danger small"></span>
                                     </td>
@@ -106,7 +113,7 @@
                                     </td>
                                     <td>
                                         <div class="d-flex gap-2 align-items-center">
-                                            <input asp-for="Items[i].RfNo" class="form-control form-control-sm" />
+                                            <input asp-for="Items[i].RfNo" class="form-control form-control-sm" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" />
                                             <button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button>
                                         </div>
                                         <span asp-validation-for="Items[i].RfNo" class="text-danger small"></span>
@@ -207,53 +214,132 @@
                 return itemsCache.items;
             }
 
-            function applyOptions(selectEl, items) {
-                var current = selectEl.value || '0';
-                selectEl.innerHTML = '<option value="0">Select item…</option>';
-                for (var i = 0; i < items.length; i++) {
-                    var it = items[i];
+            function normalizeBrand(brand) {
+                return (brand || '').trim();
+            }
+
+            function specificationLabel(item) {
+                var spec = (item.specification || '').trim();
+                if (spec) return spec;
+                return 'Standard configuration';
+            }
+
+            function refillSelect(selectEl, options, placeholderText, selectedValue) {
+                selectEl.innerHTML = '';
+                var placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = placeholderText;
+                selectEl.appendChild(placeholder);
+
+                options.forEach(function (optData) {
                     var opt = document.createElement('option');
-                    opt.value = String(it.id);
-                    opt.textContent = it.name;
-                    opt.setAttribute('data-serialized', it.isSerialized ? 'true' : 'false');
-                    opt.setAttribute('data-unit', it.unit || '');
+                    opt.value = optData.value;
+                    opt.textContent = optData.label;
                     selectEl.appendChild(opt);
+                });
+
+                selectEl.value = selectedValue || '';
+                if (selectEl.value !== (selectedValue || '')) {
+                    selectEl.value = '';
                 }
-                selectEl.value = current;
-                if (selectEl.value !== current) selectEl.value = '0';
+            }
+
+            function setItemId(row, idValue) {
+                var hidden = row.querySelector('.rq-item-id');
+                if (hidden) hidden.value = idValue || '0';
+            }
+
+            function getItemById(items, idValue) {
+                var idNum = parseInt(idValue || '0', 10);
+                if (!idNum) return null;
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].id === idNum) return items[i];
+                }
+                return null;
+            }
+
+            function hydrateRowSelectors(row, items) {
+                var nameSel = row.querySelector('.rq-item-name-select');
+                var brandSel = row.querySelector('.rq-item-brand-select');
+                var specSel = row.querySelector('.rq-item-spec-select');
+                var itemIdHidden = row.querySelector('.rq-item-id');
+                if (!nameSel || !brandSel || !specSel || !itemIdHidden) return;
+
+                var selectedItem = getItemById(items, itemIdHidden.value);
+                var selectedName = selectedItem ? selectedItem.name : (nameSel.value || '');
+                var selectedBrand = selectedItem ? normalizeBrand(selectedItem.brand) : (brandSel.value || '');
+
+                var names = Array.from(new Set(items.map(function (it) { return it.name || ''; }).filter(Boolean)))
+                    .sort(function (a, b) { return a.localeCompare(b); })
+                    .map(function (name) { return { value: name, label: name }; });
+
+                refillSelect(nameSel, names, 'Select item...', selectedName);
+
+                var filteredByName = items.filter(function (it) { return (it.name || '') === nameSel.value; });
+                var brands = Array.from(new Set(filteredByName.map(function (it) { return normalizeBrand(it.brand); })))
+                    .sort(function (a, b) { return a.localeCompare(b); })
+                    .map(function (brand) {
+                        return {
+                            value: brand,
+                            label: brand || 'Unbranded'
+                        };
+                    });
+
+                refillSelect(brandSel, brands, 'Select brand...', selectedBrand);
+                brandSel.disabled = !nameSel.value;
+
+                var filteredByBrand = filteredByName.filter(function (it) {
+                    return normalizeBrand(it.brand) === brandSel.value;
+                });
+
+                var specs = filteredByBrand
+                    .sort(function (a, b) {
+                        return specificationLabel(a).localeCompare(specificationLabel(b));
+                    })
+                    .map(function (it) {
+                        return {
+                            value: String(it.id),
+                            label: specificationLabel(it)
+                        };
+                    });
+
+                refillSelect(specSel, specs, 'Select specification...', selectedItem ? String(selectedItem.id) : '');
+                specSel.disabled = !nameSel.value || !brandSel.value;
+
+                setItemId(row, specSel.value || '0');
             }
 
             async function syncAllSelects() {
                 var typeSel = getTypeSelect();
                 var typeVal = typeSel ? typeSel.value : '';
                 var items = await loadItemsForType(typeVal);
-                document.querySelectorAll('.rq-item-select').forEach(function (sel) {
-                    applyOptions(sel, items);
+                body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
+                    hydrateRowSelectors(row, items);
                 });
             }
 
             async function syncSerialAndUnit(row) {
-                var sel = row.querySelector('.rq-item-select');
+                var itemIdInput = row.querySelector('.rq-item-id');
                 var serial = row.querySelector('.rq-serial');
                 var unit = row.querySelector('.rq-unit-select');
-                if (!sel || !serial) return;
+                if (!itemIdInput || !serial) return;
 
-                var opt = sel.options[sel.selectedIndex];
-                var serialized = opt && opt.getAttribute('data-serialized') === 'true';
+                var selectedItem = getItemById(itemsCache.items, itemIdInput.value);
+                var serialized = !!selectedItem && !!selectedItem.isSerialized;
                 serial.readOnly = true;
 
                 if (unit) {
-                    var itemUnit = opt ? (opt.getAttribute('data-unit') || '') : '';
+                    var itemUnit = selectedItem ? (selectedItem.unit || '') : '';
                     if (itemUnit) unit.value = itemUnit;
                 }
 
-                if (!serialized || sel.value === '0') {
+                if (!serialized || !selectedItem) {
                     serial.value = '';
                     return;
                 }
 
                 try {
-                    var res = await fetch('@Url.Action("InventoryItemSerials")' + '?id=' + encodeURIComponent(sel.value), {
+                    var res = await fetch('@Url.Action("InventoryItemSerials")' + '?id=' + encodeURIComponent(itemIdInput.value), {
                         headers: { 'Accept': 'application/json' }
                     });
                     if (!res.ok) return;
@@ -272,12 +358,12 @@
                 var tr = document.createElement('tr');
                 tr.className = 'rq-item-row';
                 tr.innerHTML =
-                    '<td><select class="form-select form-select-sm rq-item-select" name="Items[0].InventoryItemId"><option value="0">Select item…</option></select><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
+                    '<td><input type="hidden" class="rq-item-id" name="Items[0].InventoryItemId" value="0" /><select class="form-select form-select-sm rq-item-name-select mb-1"><option value="">Select item...</option></select><select class="form-select form-select-sm rq-item-brand-select mb-1" disabled><option value="">Select brand...</option></select><select class="form-select form-select-sm rq-item-spec-select" disabled><option value="">Select specification...</option></select><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm rq-serial" name="Items[0].SerialNo" readonly /><span class="text-danger small" data-valmsg-for="Items[0].SerialNo" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
                     '<td><select class="form-select form-select-sm rq-unit-select" name="Items[0].Unit"><option value="">Select unit…</option>@foreach (var unit in Enum.GetValues<InventoryUnit>()) {<option value="@unit.GetDisplayName()">@unit.GetDisplayName()</option>}</select><span class="text-danger small" data-valmsg-for="Items[0].Unit" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
-                    '<td><div class="d-flex gap-2"><input class="form-control form-control-sm" name="Items[0].RfNo" /><button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button></div><span class="text-danger small" data-valmsg-for="Items[0].RfNo" data-valmsg-replace="true"></span></td>';
+                    '<td><div class="d-flex gap-2"><input class="form-control form-control-sm" name="Items[0].RfNo" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" /><button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button></div><span class="text-danger small" data-valmsg-for="Items[0].RfNo" data-valmsg-replace="true"></span></td>';
                 return tr;
             }
 
@@ -296,10 +382,27 @@
                     return;
                 }
 
-                var itemSel = e.target.closest('.rq-item-select');
-                if (itemSel) {
-                    var row = itemSel.closest('tr');
-                    if (row) syncSerialAndUnit(row);
+                var row = e.target.closest('tr.rq-item-row');
+                if (!row) return;
+
+                var nameSel = e.target.closest('.rq-item-name-select');
+                if (nameSel) {
+                    hydrateRowSelectors(row, itemsCache.items);
+                    syncSerialAndUnit(row);
+                    return;
+                }
+
+                var brandSel = e.target.closest('.rq-item-brand-select');
+                if (brandSel) {
+                    hydrateRowSelectors(row, itemsCache.items);
+                    syncSerialAndUnit(row);
+                    return;
+                }
+
+                var specSel = e.target.closest('.rq-item-spec-select');
+                if (specSel) {
+                    setItemId(row, specSel.value || '0');
+                    syncSerialAndUnit(row);
                 }
             });
 

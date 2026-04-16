@@ -22,6 +22,8 @@ public class RequisitionDetailsViewModel
 
     public RequisitionStatus Status { get; set; }
 
+    public DateTimeOffset? MarkedInUseAt { get; set; }
+
     public List<RequisitionDetailsItemViewModel> Items { get; set; } = [];
 }
 

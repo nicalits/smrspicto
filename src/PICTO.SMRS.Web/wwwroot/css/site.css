@@ -141,6 +141,23 @@ body.smrs-app-body {
   height: 1.25rem;
 }
 
+.smrs-sidenav-link-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.smrs-sidenav-approval-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2em 0.5em;
+  line-height: 1.2;
+}
+
 .smrs-navbar {
   background-color: var(--smrs-navy) !important;
 }
@@ -515,4 +532,62 @@ body.smrs-app-body {
 
 .smrs-table--inventory .btn {
   white-space: nowrap;
+}
+
+.smrs-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.smrs-dashboard-kpis {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+}
+
+.smrs-dashboard-groups {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.smrs-dashboard-group-title {
+  margin: 0 0 0.85rem;
+  color: var(--smrs-navy);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.smrs-dashboard-kpi {
+  background: #fff;
+  border: 1px solid rgba(26, 58, 92, 0.12);
+  border-radius: 0.7rem;
+  box-shadow: 0 0.15rem 0.55rem rgba(26, 58, 92, 0.05);
+  padding: 0.8rem 1rem;
+  min-height: 5.2rem;
+}
+
+.smrs-dashboard-kpi__label {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #5c6772;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.smrs-dashboard-kpi__value {
+  color: var(--smrs-navy);
+  font-size: clamp(1.55rem, 2.7vw, 2rem);
+  line-height: 1;
+  font-weight: 700;
+}
+
+.smrs-dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }

@@ -31,6 +31,9 @@ public class RequisitionRecord
 
     public RequisitionStatus Status { get; set; } = RequisitionStatus.Pending;
 
+    /// <summary>When set, encoder/dept head has recorded that approved items are with the requestor (in use).</summary>
+    public DateTimeOffset? MarkedInUseAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public ICollection<RequisitionRecordItem> Items { get; set; } = new List<RequisitionRecordItem>();

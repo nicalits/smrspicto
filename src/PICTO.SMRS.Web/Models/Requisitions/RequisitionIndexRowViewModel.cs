@@ -13,4 +13,7 @@ public class RequisitionIndexRowViewModel
     public int ItemCount { get; set; }
 
     public RequisitionStatus Status { get; set; }
+
+    /// <summary>Set when approved requisition was marked in use (checker).</summary>
+    public DateTimeOffset? MarkedInUseAt { get; set; }
 }

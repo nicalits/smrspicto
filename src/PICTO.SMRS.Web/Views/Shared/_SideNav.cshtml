@@ -12,6 +12,8 @@
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.InventoryAccess)).Succeeded;
     var canApproveRequisitions = User.Identity?.IsAuthenticated == true
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionApproval)).Succeeded;
+    var canViewCheckerQueue = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionChecker)).Succeeded;
     string ActiveClass(string c, string a, string? a2 = null)
     {
         var cOk = string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase);
@@ -49,6 +51,11 @@
                         <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                         <span>Home</span>
                     </a>
+                    <a asp-controller="Reports" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Reports", "Index")"
+                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                        <span>Reports</span>
+                    </a>
                     <a asp-controller="Requisitions" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Requisitions", "Index", "Create")"
                        data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                         <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.83V19h2v-4.17l1.59 1.59L16 15.01 12.01 11 8 15.01z"/></svg>
@@ -59,7 +66,23 @@
                         <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-sidenav-link @ActiveClass("Requisitions", "Approvals")"
                            data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                             <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 16.17l-3.88-3.88L3.71 13.7 9 19l12-12-1.41-1.41z"/></svg>
-                            <span>Approvals</span>
+                            <span class="smrs-sidenav-link-text">
+                                <span>Approvals</span>
+                                @await Component.InvokeAsync("PendingApprovalBadge")
+                            </span>
+                        </a>
+                    }
+                    @if (canViewCheckerQueue)
+                    {
+                        <a asp-controller="Requisitions" asp-action="Issuance" class="smrs-sidenav-link @ActiveClass("Requisitions", "Issuance")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <span>Issuance</span>
+                        </a>
+                        <a asp-controller="Requisitions" asp-action="Checker" class="smrs-sidenav-link @ActiveClass("Requisitions", "Checker")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14H7v-2h3v2zm0-4H7v-2h3v2zm0-4H7V7h3v2zm4 8h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V7h3v2z"/></svg>
+                            <span>Checker</span>
                         </a>
                     }
                     <a asp-controller="Borrow" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Borrow", "Index")"

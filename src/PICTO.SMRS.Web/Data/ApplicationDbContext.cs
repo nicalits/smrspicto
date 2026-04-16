@@ -27,6 +27,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.Description).HasColumnType("nvarchar(max)");
             e.Property(x => x.Specifications).HasMaxLength(4000);
             e.Property(x => x.ImagePath).HasMaxLength(512);
+            e.Property(x => x.UnitPrice).HasColumnType("decimal(18,2)");
             e.HasIndex(x => x.ItemName);
             e.HasIndex(x => x.Brand);
         });

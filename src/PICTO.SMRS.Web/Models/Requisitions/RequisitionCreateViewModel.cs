@@ -33,7 +33,8 @@ public class RequisitionLineItemViewModel
     public string Purpose { get; set; } = string.Empty;
 
     [Display(Name = "RF No.")]
-    [StringLength(100)]
+    [StringLength(7)]
+    [RegularExpression(@"^$|^\d{2}-\d{4}$", ErrorMessage = "RF No. must be in the format 00-0000.")]
     public string? RfNo { get; set; }
 }
 

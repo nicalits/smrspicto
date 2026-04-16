@@ -1,0 +1,96 @@
+@using PICTO.SMRS.Web.Models.Requisitions
+@model IReadOnlyList<RequisitionApprovalRowViewModel>
+@{
+    ViewData["Title"] = "Issuance";
+    var pendingReleaseCount = Model.Count(r => r.MarkedInUseAt is null);
+    var outInUseCount = Model.Count(r => r.MarkedInUseAt is not null);
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header">
+            <h1 class="h3 text-navy mb-1">Issuance</h1>
+            <p class="text-muted mb-0">Track approved requisitions from pending release to out/in use.</p>
+        </header>
+
+        <section class="row g-2 mt-1">
+            <div class="col-12 col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <span class="text-muted small d-block">Pending Release</span>
+                    <strong class="h4 mb-0 d-block">@pendingReleaseCount</strong>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="border rounded p-3 h-100 bg-light">
+                    <span class="text-muted small d-block">Out / In Use</span>
+                    <strong class="h4 mb-0 d-block">@outInUseCount</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="smrs-section mt-4">
+            @if (Model.Count == 0)
+            {
+                <div class="alert alert-secondary mb-0">No approved requisitions yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>RS No.</th>
+                                <th>Date</th>
+                                <th>Requestor</th>
+                                <th>Division</th>
+                                <th>Type</th>
+                                <th>Items</th>
+                                <th>Under use</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model)
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(row.RsNo) ? "—" : row.RsNo)</td>
+                                    <td>@row.Date.ToString("yyyy-MM-dd")</td>
+                                    <td>@row.RequestorName</td>
+                                    <td>@row.RequestorDivision</td>
+                                    <td>@(row.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</td>
+                                    <td>@row.ItemCount</td>
+                                    <td>
+                                        @if (row.MarkedInUseAt is { } at)
+                                        {
+                                            <span class="badge bg-primary">In use</span>
+                                            <span class="text-muted small d-block">@at.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Awaiting issuance</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                            <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Issuance" class="btn btn-sm btn-outline-primary">View</a>
+                                            @if (row.MarkedInUseAt is null)
+                                            {
+                                                <form asp-action="MarkInUse" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Record issuance for this requisition? Items will show as in use with the requestor.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@row.Id" />
+                                                    <input type="hidden" name="returnAction" value="Issuance" />
+                                                    <button type="submit" class="btn btn-sm btn-primary">Record issuance</button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</div>

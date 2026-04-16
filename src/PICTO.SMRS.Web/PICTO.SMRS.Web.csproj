@@ -15,4 +15,16 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Defensive: exclude build artifacts if they ever get picked up by globbing. -->
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove="obj\**\*.cs" />
+    <EmbeddedResource Remove="bin\**\*" />
+    <EmbeddedResource Remove="obj\**\*" />
+    <Content Remove="bin\**\*" />
+    <Content Remove="obj\**\*" />
+    <None Remove="bin\**\*" />
+    <None Remove="obj\**\*" />
+  </ItemGroup>
+
 </Project>

@@ -42,14 +42,14 @@ builder.Services.AddAuthorization(options =>
         .Build();
     options.AddPolicy(SmrsPolicies.UserManagement, policy =>
         policy.RequireRole(
-            SmrsRoles.DepartmentHead,
-            SmrsRoles.ItDivisionHead,
-            SmrsRoles.OfficeDivisionHead));
+            SmrsRoles.DepartmentHead));
     options.AddPolicy(SmrsPolicies.RequisitionApproval, policy =>
         policy.RequireRole(
             SmrsRoles.DepartmentHead,
             SmrsRoles.ItDivisionHead,
             SmrsRoles.OfficeDivisionHead));
+    options.AddPolicy(SmrsPolicies.RequisitionChecker, policy =>
+        policy.RequireRole(SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
     options.AddPolicy(SmrsPolicies.InventoryAccess, policy =>
         policy.RequireAssertion(ctx =>
             ctx.User.Identity?.IsAuthenticated == true
@@ -65,6 +65,20 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 var app = builder.Build();
+
+// Keep schema in sync with the current EF model before handling requests.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('InventoryItems', 'UnitPrice') IS NULL
+        BEGIN
+            ALTER TABLE [InventoryItems]
+            ADD [UnitPrice] decimal(18,2) NOT NULL CONSTRAINT [DF_InventoryItems_UnitPrice] DEFAULT (0);
+        END
+        """);
+    await db.Database.MigrateAsync();
+}
 
 await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger);
 

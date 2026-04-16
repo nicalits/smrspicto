@@ -38,6 +38,21 @@
                 <div class="col-md-3"><span class="text-muted d-block">Type</span><span class="fw-semibold">@(Model.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</span></div>
                 <div class="col-md-3"><span class="text-muted d-block">Requestor</span><span class="fw-semibold">@Model.RequestorName</span></div>
                 <div class="col-md-3"><span class="text-muted d-block">Division</span><span class="fw-semibold">@Model.RequestorDivision</span></div>
+                @if (Model.Status == RequisitionStatus.Approved)
+                {
+                    <div class="col-md-3">
+                        <span class="text-muted d-block">Under use</span>
+                        @if (Model.MarkedInUseAt is { } atUse)
+                        {
+                            <span class="badge bg-primary">In use</span>
+                            <span class="d-block fw-semibold mt-1">@atUse.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Awaiting issuance</span>
+                        }
+                    </div>
+                }
             </div>
         </section>
 
@@ -76,12 +91,14 @@
                 <a asp-action="@backAction" class="btn btn-outline-secondary">Back</a>
                 @if (canTakeAction)
                 {
-                    <form asp-action="Approve" method="post" class="d-inline">
+                    <form asp-action="Approve" method="post" class="d-inline"
+                          onsubmit="return confirm('Approve this requisition? You can still review the record afterward, but the status will be set to Approved.');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button type="submit" class="btn btn-success">Approve</button>
                     </form>
-                    <form asp-action="Reject" method="post" class="d-inline">
+                    <form asp-action="Reject" method="post" class="d-inline"
+                          onsubmit="return confirm('Reject this requisition? This will mark the request as Rejected.');">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button type="submit" class="btn btn-danger">Reject</button>

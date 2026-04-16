@@ -55,6 +55,7 @@ public class InventoryController : Controller
         return View(new AddInventoryItemViewModel
         {
             Quantity = 0,
+            UnitPrice = 0,
             LowStockLevel = 0
         });
     }
@@ -109,6 +110,7 @@ public class InventoryController : Controller
             SupplyGroup = model.SupplyGroup,
             Unit = model.Unit,
             Quantity = model.Quantity,
+            UnitPrice = model.UnitPrice,
             ReservedQuantity = 0,
             LowStockLevel = model.LowStockLevel,
             Location = string.IsNullOrWhiteSpace(model.Location) ? null : model.Location.Trim(),
@@ -148,6 +150,7 @@ public class InventoryController : Controller
             SupplyGroup = entity.SupplyGroup,
             Unit = entity.Unit,
             Quantity = entity.Quantity,
+            UnitPrice = entity.UnitPrice,
             LowStockLevel = entity.LowStockLevel,
             Location = entity.Location,
             Description = entity.Description,
@@ -219,6 +222,7 @@ public class InventoryController : Controller
         entity.SupplyGroup = model.SupplyGroup;
         entity.Unit = model.Unit;
         entity.Quantity = model.Quantity;
+        entity.UnitPrice = model.UnitPrice;
         entity.LowStockLevel = model.LowStockLevel;
         entity.Location = string.IsNullOrWhiteSpace(model.Location) ? null : model.Location.Trim();
         entity.Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
@@ -292,6 +296,8 @@ public class InventoryController : Controller
             SupplyGroupDisplay = i.SupplyGroup.GetDisplayName(),
             UnitDisplay = i.Unit.GetDisplayName(),
             Quantity = i.Quantity,
+            UnitPrice = i.UnitPrice,
+            TotalAmount = i.UnitPrice * i.Quantity,
             ReservedQuantity = i.ReservedQuantity,
             AvailableQuantity = available,
             LowStockLevel = i.LowStockLevel,
@@ -400,7 +406,7 @@ public class InventoryController : Controller
         var s = (sort ?? "item").Trim().ToLowerInvariant();
         return s switch
         {
-            "item" or "brand" or "group" or "unit" or "qty" or "reserved" or "available" or "lowstock" or "location" or "description" or "serialized" => s,
+            "item" or "brand" or "group" or "unit" or "qty" or "price" or "total" or "reserved" or "available" or "lowstock" or "location" or "description" or "serialized" => s,
             _ => "item"
         };
     }
@@ -423,6 +429,10 @@ public class InventoryController : Controller
             ("unit", true) => query.OrderByDescending(i => i.Unit).ThenByDescending(i => i.ItemName),
             ("qty", false) => query.OrderBy(i => i.Quantity).ThenBy(i => i.ItemName),
             ("qty", true) => query.OrderByDescending(i => i.Quantity).ThenByDescending(i => i.ItemName),
+            ("price", false) => query.OrderBy(i => i.UnitPrice).ThenBy(i => i.ItemName),
+            ("price", true) => query.OrderByDescending(i => i.UnitPrice).ThenByDescending(i => i.ItemName),
+            ("total", false) => query.OrderBy(i => (i.UnitPrice * i.Quantity)).ThenBy(i => i.ItemName),
+            ("total", true) => query.OrderByDescending(i => (i.UnitPrice * i.Quantity)).ThenByDescending(i => i.ItemName),
             ("reserved", false) => query.OrderBy(i => i.ReservedQuantity).ThenBy(i => i.ItemName),
             ("reserved", true) => query.OrderByDescending(i => i.ReservedQuantity).ThenByDescending(i => i.ItemName),
             ("available", false) => query.OrderBy(i => (i.Quantity - i.ReservedQuantity)).ThenBy(i => i.ItemName),

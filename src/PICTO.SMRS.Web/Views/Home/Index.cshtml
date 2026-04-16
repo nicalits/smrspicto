@@ -1,11 +1,95 @@
-﻿@{
-    ViewData["Title"] = "Home";
+﻿@model PICTO.SMRS.Web.Models.HomeDashboardViewModel
+@{
+    ViewData["Title"] = "Master Dashboard";
 }
 
-<div class="smrs-card">
-    <h1 class="h3 text-navy mb-3">PICTO: SMRS</h1>
-    <p class="mb-0">
-        Supply Monitoring &amp; Requisition System — signed in as <strong>@User.Identity?.Name</strong>.
-        Use the navigation bar for available actions.
-    </p>
+<div class="smrs-page smrs-page--wide smrs-dashboard">
+    <section class="smrs-card smrs-card--page smrs-card--tight">
+        <header class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h1 class="h3 text-navy mb-0">Master Dashboard</h1>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Reports" asp-action="Index" class="btn btn-sm btn-primary">Reports</a>
+            </div>
+        </header>
+    </section>
+
+    <section class="smrs-dashboard-groups mt-3">
+        <article class="smrs-card smrs-card--page smrs-card--tight">
+            <h2 class="smrs-dashboard-group-title">Workflow queues</h2>
+            <div class="smrs-dashboard-kpis">
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Approvals Queue</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.ApprovalsQueue</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Checker Queue</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.CheckerQueue</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Issuance Queue</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.IssuanceQueue</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Borrow Unreturned</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.BorrowUnreturned</strong>
+                </article>
+            </div>
+        </article>
+
+        <article class="smrs-card smrs-card--page smrs-card--tight">
+            <h2 class="smrs-dashboard-group-title">Inventory overview</h2>
+            <div class="smrs-dashboard-kpis">
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">IT Supplies</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.ItSuppliesEntries</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Office Supplies</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.OfficeSuppliesEntries</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Serialized Units</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.SerializedUnits</strong>
+                </article>
+            </div>
+        </article>
+
+        <article class="smrs-card smrs-card--page smrs-card--tight">
+            <h2 class="smrs-dashboard-group-title">Unit metrics</h2>
+            <div class="smrs-dashboard-kpis">
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Total Units</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.TotalUnits</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Reserved Units</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.ReservedUnits</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Available Units</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.AvailableUnits</strong>
+                </article>
+                <article class="smrs-dashboard-kpi">
+                    <span class="smrs-dashboard-kpi__label">Units Used</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.UnitsUsed</strong>
+                </article>
+            </div>
+        </article>
+    </section>
+
+    <section class="smrs-card smrs-card--page smrs-card--tight mt-3">
+        <h2 class="h5 text-navy mb-3">Quick actions</h2>
+        <div class="smrs-dashboard-actions">
+            <a asp-controller="Requisitions" asp-action="Index" class="btn btn-sm btn-primary">Requisitions</a>
+            <a asp-controller="Borrow" asp-action="Index" class="btn btn-sm btn-primary">Borrow</a>
+            <a asp-controller="Inventory" asp-action="Index" class="btn btn-sm btn-outline-secondary">Inventory</a>
+            <a asp-controller="Requisitions" asp-action="Approvals" class="btn btn-sm btn-outline-secondary">Approvals</a>
+            <a asp-controller="Requisitions" asp-action="Checker" class="btn btn-sm btn-outline-secondary">Checker</a>
+            <a asp-controller="Requisitions" asp-action="Issuance" class="btn btn-sm btn-outline-secondary">Issuance</a>
+            @if (User.IsInRole(SmrsRoles.DepartmentHead))
+            {
+                <a asp-controller="Users" asp-action="Create" class="btn btn-sm btn-outline-secondary">User Management</a>
+            }
+        </div>
+    </section>
 </div>

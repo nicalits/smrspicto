@@ -77,6 +77,12 @@
                                     <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="qty" asp-route-dir="@NextDir("qty")" class="text-reset text-decoration-none">Qty @SortIndicator("qty")</a>
                                 </th>
                                 <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="price" asp-route-dir="@NextDir("price")" class="text-reset text-decoration-none">Price @SortIndicator("price")</a>
+                                </th>
+                                <th scope="col" class="text-end">
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="total" asp-route-dir="@NextDir("total")" class="text-reset text-decoration-none">Total Amount @SortIndicator("total")</a>
+                                </th>
+                                <th scope="col" class="text-end">
                                     <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="reserved" asp-route-dir="@NextDir("reserved")" class="text-reset text-decoration-none">Reserved @SortIndicator("reserved")</a>
                                 </th>
                                 <th scope="col" class="text-end">
@@ -117,6 +123,8 @@
                                     <td>@row.SupplyGroupDisplay</td>
                                     <td>@row.UnitDisplay</td>
                                     <td class="text-end">@row.Quantity</td>
+                                    <td class="text-end">@row.UnitPrice.ToPeso()</td>
+                                    <td class="text-end fw-semibold">@row.TotalAmount.ToPeso()</td>
                                     <td class="text-end">@row.ReservedQuantity</td>
                                     <td class="text-end fw-semibold">@row.AvailableQuantity</td>
                                     <td class="text-end">@row.LowStockLevel</td>

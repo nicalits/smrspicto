@@ -1,20 +1,19 @@
 @using PICTO.SMRS.Web.Models.Requisitions
 @model IReadOnlyList<RequisitionApprovalRowViewModel>
 @{
-    ViewData["Title"] = "Requisition Approvals";
+    ViewData["Title"] = "Approved requisitions (checker)";
 }
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
         <header class="smrs-page-header">
-            <h1 class="h3 text-navy mb-1">Requisition Approvals</h1>
-            
+            <h1 class="h3 text-navy mb-1">Checker</h1>
         </header>
 
         <section class="smrs-section mt-4">
             @if (Model.Count == 0)
             {
-                <div class="alert alert-secondary mb-0">No requisitions available for your approval queue.</div>
+                <div class="alert alert-secondary mb-0">No approved requisitions yet.</div>
             }
             else
             {
@@ -22,12 +21,12 @@
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
                             <tr>
-                                                               <th>Date</th>
+                                <th>RS No.</th>
+                                <th>Date</th>
                                 <th>Requestor</th>
                                 <th>Division</th>
                                 <th>Type</th>
                                 <th>Items</th>
-                                <th>Status</th>
                                 <th>Under use</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -35,40 +34,26 @@
                         <tbody>
                             @foreach (var row in Model)
                             {
-                                var badgeClass = row.Status switch
-                                {
-                                    RequisitionStatus.Approved => "bg-success",
-                                    RequisitionStatus.Rejected => "bg-danger",
-                                    _ => "bg-warning text-dark"
-                                };
                                 <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(row.RsNo) ? "—" : row.RsNo)</td>
                                     <td>@row.Date.ToString("yyyy-MM-dd")</td>
                                     <td>@row.RequestorName</td>
                                     <td>@row.RequestorDivision</td>
                                     <td>@(row.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</td>
                                     <td>@row.ItemCount</td>
                                     <td>
-                                        <span class="badge @badgeClass">@row.Status</span>
-                                    </td>
-                                    <td>
-                                        @if (row.Status == RequisitionStatus.Approved)
+                                        @if (row.MarkedInUseAt is { } at)
                                         {
-                                            if (row.MarkedInUseAt is not null)
-                                            {
-                                                <span class="badge bg-primary">In use</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary">Awaiting issuance</span>
-                                            }
+                                            <span class="badge bg-primary">In use</span>
+                                            <span class="text-muted small d-block">@at.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                                         }
                                         else
                                         {
-                                            <span class="text-muted">—</span>
+                                            <span class="badge bg-secondary">Awaiting issuance</span>
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Checker" class="btn btn-sm btn-outline-primary">View</a>
                                     </td>
                                 </tr>
                             }

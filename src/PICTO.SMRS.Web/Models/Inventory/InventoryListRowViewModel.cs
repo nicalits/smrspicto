@@ -8,6 +8,8 @@ public class InventoryListRowViewModel
     public string SupplyGroupDisplay { get; set; } = string.Empty;
     public string UnitDisplay { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalAmount { get; set; }
     public int ReservedQuantity { get; set; }
     public int AvailableQuantity { get; set; }
     public int LowStockLevel { get; set; }

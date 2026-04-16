@@ -24,6 +24,11 @@ public class AddInventoryItemViewModel
     [Display(Name = "Quantity on hand")]
     public int Quantity { get; set; }
 
+    [Range(typeof(decimal), "0", "79228162514264337593543950335", ErrorMessage = "Unit price must be zero or greater.")]
+    [Display(Name = "Unit price")]
+    [DataType(DataType.Currency)]
+    public decimal UnitPrice { get; set; }
+
     [Range(0, int.MaxValue, ErrorMessage = "Low stock level must be zero or greater.")]
     [Display(Name = "Low stock level")]
     public int LowStockLevel { get; set; }

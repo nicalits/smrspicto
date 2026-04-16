@@ -32,6 +32,11 @@
                         <span asp-validation-for="Quantity" class="text-danger small"></span>
                     </div>
                     <div class="col-12 col-md-6">
+                        <label asp-for="UnitPrice" class="form-label"></label>
+                        <input asp-for="UnitPrice" class="form-control" type="number" min="0" step="0.01" />
+                        <span asp-validation-for="UnitPrice" class="text-danger small"></span>
+                    </div>
+                    <div class="col-12 col-md-6">
                         <label asp-for="Unit" class="form-label"></label>
                         <select asp-for="Unit" class="form-select" asp-items="Html.GetEnumSelectList<InventoryUnit>()"></select>
                         <span asp-validation-for="Unit" class="text-danger small"></span>
