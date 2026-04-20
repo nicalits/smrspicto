@@ -1,4 +1,7 @@
 @model CreateUserViewModel
+@{
+    var useModalCancel = ViewData["UseModalCancel"] as bool? ?? false;
+}
 
 <form asp-action="Create" method="post" novalidate>
     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
@@ -46,6 +49,13 @@
 
     <div class="d-grid gap-2">
         <button type="submit" class="btn btn-gold text-navy fw-semibold">Create user</button>
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        @if (useModalCancel)
+        {
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        }
+        else
+        {
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+        }
     </div>
 </form>

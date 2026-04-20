@@ -2,14 +2,22 @@
 @using PICTO.SMRS.Web.Models.Inventory
 @model RequisitionCreateViewModel
 @{
-    ViewData["Title"] = "New requisition slip";
+    var formAction = ViewData["FormAction"]?.ToString() ?? "Create";
+    var submitLabel = ViewData["SubmitLabel"]?.ToString() ?? "Submit";
+    var pageHeading = ViewData["PageHeading"]?.ToString() ?? "New requisition slip";
+    var editId = ViewData["EditId"] as int?;
+    ViewData["Title"] = pageHeading;
 }
 
 <div class="smrs-page smrs-page--wide">
     <div class="smrs-card smrs-card--page smrs-card--tight">
         <section class="smrs-section">
-            <form asp-action="Create" method="post" novalidate>
+            <form asp-action="@formAction" method="post" novalidate>
                 @Html.AntiForgeryToken()
+                @if (editId is int id)
+                {
+                    <input type="hidden" name="id" value="@id" />
+                }
                 <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
 
                 <div>
@@ -18,7 +26,7 @@
                             <tr>
                                 <td colspan="6" class="bg-light text-center">
                                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                                        <div class="fw-semibold text-navy flex-grow-1 text-center">Requisition Slip</div>
+                                        <div class="fw-semibold text-navy flex-grow-1 text-center">@pageHeading</div>
                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                             <div class="d-flex align-items-center gap-2">
                                                 <label asp-for="RsNo" class="small fw-semibold text-muted mb-0"></label>
@@ -78,15 +86,10 @@
                                 <tr class="rq-item-row">
                                     <td>
                                         <input asp-for="Items[i].InventoryItemId" type="hidden" class="rq-item-id" />
-                                        <select class="form-select form-select-sm rq-item-name-select mb-1">
-                                            <option value="">Select item...</option>
-                                        </select>
-                                        <select class="form-select form-select-sm rq-item-brand-select mb-1" disabled>
-                                            <option value="">Select brand...</option>
-                                        </select>
-                                        <select class="form-select form-select-sm rq-item-spec-select" disabled>
-                                            <option value="0">Select specification...</option>
-                                        </select>
+                                        <div class="d-flex gap-2 mb-1">
+                                            <input class="form-control form-control-sm rq-item-summary" value="" placeholder="No item selected" readonly />
+                                            <button type="button" class="btn btn-sm btn-outline-secondary rq-open-item-picker text-nowrap">Select item</button>
+                                        </div>
                                         <span asp-validation-for="Items[i].InventoryItemId" class="text-danger small"></span>
                                     </td>
                                     <td>
@@ -152,11 +155,37 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-light-subtle">
-                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">Submit</button>
+                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">@submitLabel</button>
                     <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
                 </div>
             </form>
         </section>
+    </div>
+</div>
+
+<div id="rqItemPickerModal" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,.35); z-index: 1080;">
+    <div class="position-absolute top-50 start-50 translate-middle bg-white rounded shadow p-3" style="width: min(980px, 95vw); max-height: 85vh; overflow: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 text-navy">Select item</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="rqItemPickerClose">Close</button>
+        </div>
+        <input id="rqItemPickerSearch" type="search" class="form-control form-control-sm mb-2" placeholder="Search item, brand, specification, or unit..." />
+        <div class="table-responsive border rounded">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">Item</th>
+                        <th style="width: 18%;">Brand</th>
+                        <th style="width: 35%;">Specification</th>
+                        <th style="width: 10%;">Unit</th>
+                        <th style="width: 12%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="rqItemPickerBody">
+                    <tr><td colspan="5" class="text-muted small">No items found.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -214,34 +243,10 @@
                 return itemsCache.items;
             }
 
-            function normalizeBrand(brand) {
-                return (brand || '').trim();
-            }
-
             function specificationLabel(item) {
                 var spec = (item.specification || '').trim();
                 if (spec) return spec;
                 return 'Standard configuration';
-            }
-
-            function refillSelect(selectEl, options, placeholderText, selectedValue) {
-                selectEl.innerHTML = '';
-                var placeholder = document.createElement('option');
-                placeholder.value = '';
-                placeholder.textContent = placeholderText;
-                selectEl.appendChild(placeholder);
-
-                options.forEach(function (optData) {
-                    var opt = document.createElement('option');
-                    opt.value = optData.value;
-                    opt.textContent = optData.label;
-                    selectEl.appendChild(opt);
-                });
-
-                selectEl.value = selectedValue || '';
-                if (selectEl.value !== (selectedValue || '')) {
-                    selectEl.value = '';
-                }
             }
 
             function setItemId(row, idValue) {
@@ -258,55 +263,19 @@
                 return null;
             }
 
-            function hydrateRowSelectors(row, items) {
-                var nameSel = row.querySelector('.rq-item-name-select');
-                var brandSel = row.querySelector('.rq-item-brand-select');
-                var specSel = row.querySelector('.rq-item-spec-select');
-                var itemIdHidden = row.querySelector('.rq-item-id');
-                if (!nameSel || !brandSel || !specSel || !itemIdHidden) return;
+            function itemSummary(item) {
+                if (!item) return '';
+                return [item.name, item.brand, specificationLabel(item)].filter(function (part) {
+                    return !!(part && String(part).trim());
+                }).join(' - ');
+            }
 
-                var selectedItem = getItemById(items, itemIdHidden.value);
-                var selectedName = selectedItem ? selectedItem.name : (nameSel.value || '');
-                var selectedBrand = selectedItem ? normalizeBrand(selectedItem.brand) : (brandSel.value || '');
-
-                var names = Array.from(new Set(items.map(function (it) { return it.name || ''; }).filter(Boolean)))
-                    .sort(function (a, b) { return a.localeCompare(b); })
-                    .map(function (name) { return { value: name, label: name }; });
-
-                refillSelect(nameSel, names, 'Select item...', selectedName);
-
-                var filteredByName = items.filter(function (it) { return (it.name || '') === nameSel.value; });
-                var brands = Array.from(new Set(filteredByName.map(function (it) { return normalizeBrand(it.brand); })))
-                    .sort(function (a, b) { return a.localeCompare(b); })
-                    .map(function (brand) {
-                        return {
-                            value: brand,
-                            label: brand || 'Unbranded'
-                        };
-                    });
-
-                refillSelect(brandSel, brands, 'Select brand...', selectedBrand);
-                brandSel.disabled = !nameSel.value;
-
-                var filteredByBrand = filteredByName.filter(function (it) {
-                    return normalizeBrand(it.brand) === brandSel.value;
-                });
-
-                var specs = filteredByBrand
-                    .sort(function (a, b) {
-                        return specificationLabel(a).localeCompare(specificationLabel(b));
-                    })
-                    .map(function (it) {
-                        return {
-                            value: String(it.id),
-                            label: specificationLabel(it)
-                        };
-                    });
-
-                refillSelect(specSel, specs, 'Select specification...', selectedItem ? String(selectedItem.id) : '');
-                specSel.disabled = !nameSel.value || !brandSel.value;
-
-                setItemId(row, specSel.value || '0');
+            function syncRowSummary(row, items) {
+                var summary = row.querySelector('.rq-item-summary');
+                var hidden = row.querySelector('.rq-item-id');
+                if (!summary || !hidden) return;
+                var selectedItem = getItemById(items, hidden.value);
+                summary.value = selectedItem ? itemSummary(selectedItem) : '';
             }
 
             async function syncAllSelects() {
@@ -314,8 +283,9 @@
                 var typeVal = typeSel ? typeSel.value : '';
                 var items = await loadItemsForType(typeVal);
                 body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
-                    hydrateRowSelectors(row, items);
+                    syncRowSummary(row, items);
                 });
+                renderPickerRows(items);
             }
 
             async function syncSerialAndUnit(row) {
@@ -358,13 +328,62 @@
                 var tr = document.createElement('tr');
                 tr.className = 'rq-item-row';
                 tr.innerHTML =
-                    '<td><input type="hidden" class="rq-item-id" name="Items[0].InventoryItemId" value="0" /><select class="form-select form-select-sm rq-item-name-select mb-1"><option value="">Select item...</option></select><select class="form-select form-select-sm rq-item-brand-select mb-1" disabled><option value="">Select brand...</option></select><select class="form-select form-select-sm rq-item-spec-select" disabled><option value="">Select specification...</option></select><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
+                    '<td><input type="hidden" class="rq-item-id" name="Items[0].InventoryItemId" value="0" /><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm rq-item-summary" placeholder="No item selected" readonly /><button type="button" class="btn btn-sm btn-outline-secondary rq-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm rq-serial" name="Items[0].SerialNo" readonly /><span class="text-danger small" data-valmsg-for="Items[0].SerialNo" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
                     '<td><select class="form-select form-select-sm rq-unit-select" name="Items[0].Unit"><option value="">Select unit…</option>@foreach (var unit in Enum.GetValues<InventoryUnit>()) {<option value="@unit.GetDisplayName()">@unit.GetDisplayName()</option>}</select><span class="text-danger small" data-valmsg-for="Items[0].Unit" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
                     '<td><div class="d-flex gap-2"><input class="form-control form-control-sm" name="Items[0].RfNo" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" /><button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button></div><span class="text-danger small" data-valmsg-for="Items[0].RfNo" data-valmsg-replace="true"></span></td>';
                 return tr;
+            }
+
+            var modal = document.getElementById('rqItemPickerModal');
+            var modalBody = document.getElementById('rqItemPickerBody');
+            var modalSearch = document.getElementById('rqItemPickerSearch');
+            var modalClose = document.getElementById('rqItemPickerClose');
+            var activeRow = null;
+
+            function renderPickerRows(items) {
+                if (!modalBody) return;
+                var keyword = (modalSearch && modalSearch.value ? modalSearch.value : '').trim().toLowerCase();
+                var filtered = items.filter(function (it) {
+                    if (!keyword) return true;
+                    var haystack = [
+                        it.name || '',
+                        it.brand || '',
+                        specificationLabel(it),
+                        it.unit || ''
+                    ].join(' ').toLowerCase();
+                    return haystack.indexOf(keyword) !== -1;
+                });
+
+                if (filtered.length === 0) {
+                    modalBody.innerHTML = '<tr><td colspan="5" class="text-muted small">No items found.</td></tr>';
+                    return;
+                }
+
+                modalBody.innerHTML = filtered.map(function (it) {
+                    return '<tr>' +
+                        '<td>' + (it.name || '') + '</td>' +
+                        '<td>' + ((it.brand || '').trim() || 'Unbranded') + '</td>' +
+                        '<td>' + specificationLabel(it) + '</td>' +
+                        '<td>' + (it.unit || '') + '</td>' +
+                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary rq-picker-select" data-id="' + it.id + '">Choose</button></td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            function openPicker(row) {
+                activeRow = row;
+                if (modalSearch) modalSearch.value = '';
+                renderPickerRows(itemsCache.items);
+                if (modal) modal.classList.remove('d-none');
+                if (modalSearch) modalSearch.focus();
+            }
+
+            function closePicker() {
+                activeRow = null;
+                if (modal) modal.classList.add('d-none');
             }
 
             addBtn.addEventListener('click', function () {
@@ -384,29 +403,17 @@
 
                 var row = e.target.closest('tr.rq-item-row');
                 if (!row) return;
-
-                var nameSel = e.target.closest('.rq-item-name-select');
-                if (nameSel) {
-                    hydrateRowSelectors(row, itemsCache.items);
-                    syncSerialAndUnit(row);
-                    return;
-                }
-
-                var brandSel = e.target.closest('.rq-item-brand-select');
-                if (brandSel) {
-                    hydrateRowSelectors(row, itemsCache.items);
-                    syncSerialAndUnit(row);
-                    return;
-                }
-
-                var specSel = e.target.closest('.rq-item-spec-select');
-                if (specSel) {
-                    setItemId(row, specSel.value || '0');
-                    syncSerialAndUnit(row);
-                }
             });
 
             body.addEventListener('click', function (e) {
+                var pickerBtn = e.target.closest('.rq-open-item-picker');
+                if (pickerBtn) {
+                    var row = pickerBtn.closest('tr.rq-item-row');
+                    if (!row) return;
+                    openPicker(row);
+                    return;
+                }
+
                 var btn = e.target.closest('.rq-remove-row');
                 if (!btn) return;
                 var tr = btn.closest('tr');
@@ -418,6 +425,34 @@
                 renumber();
                 syncAllSelects();
             });
+
+            if (modalSearch) {
+                modalSearch.addEventListener('input', function () {
+                    renderPickerRows(itemsCache.items);
+                });
+            }
+
+            if (modalClose) {
+                modalClose.addEventListener('click', closePicker);
+            }
+
+            if (modalBody) {
+                modalBody.addEventListener('click', function (e) {
+                    var chooseBtn = e.target.closest('.rq-picker-select');
+                    if (!chooseBtn || !activeRow) return;
+                    var selectedId = chooseBtn.getAttribute('data-id') || '0';
+                    setItemId(activeRow, selectedId);
+                    syncRowSummary(activeRow, itemsCache.items);
+                    syncSerialAndUnit(activeRow);
+                    closePicker();
+                });
+            }
+
+            if (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closePicker();
+                });
+            }
 
             syncAllSelects().then(function () {
                 body.querySelectorAll('tr.rq-item-row').forEach(function (r) {

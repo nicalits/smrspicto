@@ -19,12 +19,20 @@
     <!-- Defensive: exclude build artifacts if they ever get picked up by globbing. -->
     <Compile Remove="bin\**\*.cs" />
     <Compile Remove="obj\**\*.cs" />
+    <Compile Remove="_build_verify*\**\*.cs" />
+    <Compile Remove="_obj_verify*\**\*.cs" />
     <EmbeddedResource Remove="bin\**\*" />
     <EmbeddedResource Remove="obj\**\*" />
+    <EmbeddedResource Remove="_build_verify*\**\*" />
+    <EmbeddedResource Remove="_obj_verify*\**\*" />
     <Content Remove="bin\**\*" />
     <Content Remove="obj\**\*" />
+    <Content Remove="_build_verify*\**\*" />
+    <Content Remove="_obj_verify*\**\*" />
     <None Remove="bin\**\*" />
     <None Remove="obj\**\*" />
+    <None Remove="_build_verify*\**\*" />
+    <None Remove="_obj_verify*\**\*" />
   </ItemGroup>
 
 </Project>

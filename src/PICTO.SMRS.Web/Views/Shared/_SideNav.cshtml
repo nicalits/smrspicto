@@ -46,16 +46,22 @@
             </button>
             <div class="collapse show" id="smrsNavPrimary@(sx)">
                 <nav class="smrs-sidenav-list">
-                    <a asp-controller="Home" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Home", "Index")"
-                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
-                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                        <span>Home</span>
-                    </a>
-                    <a asp-controller="Reports" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Reports", "Index")"
-                       data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
-                        <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-                        <span>Reports</span>
-                    </a>
+                    @if (!User.IsInRole(SmrsRoles.Employee))
+                    {
+                        <a asp-controller="Home" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Home", "Index")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                            <span>Master Dashboard</span>
+                        </a>
+                    }
+                    @if (!User.IsInRole(SmrsRoles.Employee))
+                    {
+                        <a asp-controller="Reports" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Reports", "Index")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                            <span>Reports</span>
+                        </a>
+                    }
                     <a asp-controller="Requisitions" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Requisitions", "Index", "Create")"
                        data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                         <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.83V19h2v-4.17l1.59 1.59L16 15.01 12.01 11 8 15.01z"/></svg>

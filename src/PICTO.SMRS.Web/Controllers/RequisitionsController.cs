@@ -59,6 +59,9 @@ public class RequisitionsController : Controller
             RequestorDivision = User.FindFirstValue(SmrsClaimTypes.Division) ?? string.Empty,
             Items = [new RequisitionLineItemViewModel { Qty = 1 }]
         };
+        ViewData["FormAction"] = nameof(Create);
+        ViewData["SubmitLabel"] = "Submit";
+        ViewData["PageHeading"] = "New requisition slip";
         return View(vm);
     }
 
@@ -129,6 +132,154 @@ public class RequisitionsController : Controller
 
         TempData["StatusMessage"] = "Requisition form submitted and sent for approval.";
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        var requisition = await _db.RequisitionRecords
+            .AsNoTracking()
+            .Include(r => r.Items)
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (requisition is null)
+            return NotFound();
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId)
+            || !string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal))
+            return Forbid();
+
+        if (requisition.Status != RequisitionStatus.Pending)
+        {
+            TempData["ErrorMessage"] = "Only pending requisitions can be edited.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var model = new RequisitionCreateViewModel
+        {
+            RsNo = requisition.RsNo ?? string.Empty,
+            ItemType = requisition.ItemType,
+            Date = requisition.Date,
+            RequestorName = requisition.RequestorName,
+            RequestorPosition = requisition.RequestorPosition,
+            RequestorDivision = requisition.RequestorDivision,
+            Office = requisition.Office,
+            MrIcsPosition = requisition.MrIcsPosition,
+            Items = requisition.Items.Select(i => new RequisitionLineItemViewModel
+            {
+                InventoryItemId = i.InventoryItemId,
+                SerialNo = i.SerialNo,
+                Qty = i.Qty,
+                Unit = i.Unit,
+                Purpose = i.Purpose,
+                RfNo = i.RfNo
+            }).ToList()
+        };
+
+        ViewData["FormAction"] = nameof(Edit);
+        ViewData["EditId"] = id;
+        ViewData["SubmitLabel"] = "Save changes";
+        ViewData["PageHeading"] = "Edit requisition slip";
+        return View(nameof(Create), model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, RequisitionCreateViewModel model, CancellationToken cancellationToken)
+    {
+        var requisition = await _db.RequisitionRecords
+            .Include(r => r.Items)
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (requisition is null)
+            return NotFound();
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId)
+            || !string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal))
+            return Forbid();
+
+        if (requisition.Status != RequisitionStatus.Pending)
+        {
+            TempData["ErrorMessage"] = "Only pending requisitions can be edited.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        model.Date = DateOnly.FromDateTime(DateTime.Today);
+        model.RequestorName = User.FindFirstValue(SmrsClaimTypes.EmployeeName) ?? model.RequestorName;
+        model.RequestorPosition = User.FindFirstValue(SmrsClaimTypes.Position) ?? model.RequestorPosition;
+        model.RequestorDivision = User.FindFirstValue(SmrsClaimTypes.Division) ?? model.RequestorDivision;
+        model.RsNo = (model.RsNo ?? string.Empty).Trim().ToUpperInvariant();
+        model.Items ??= [];
+        model.Items = model.Items.Where(i => i is not null).ToList();
+
+        foreach (var item in model.Items)
+            item.RfNo = string.IsNullOrWhiteSpace(item.RfNo) ? null : item.RfNo.Trim();
+
+        if (model.Items.Count == 0)
+            ModelState.AddModelError(nameof(model.Items), "Add at least one item.");
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["FormAction"] = nameof(Edit);
+            ViewData["EditId"] = id;
+            ViewData["SubmitLabel"] = "Save changes";
+            ViewData["PageHeading"] = "Edit requisition slip";
+            return View(nameof(Create), model);
+        }
+
+        await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
+        {
+            var releaseError = await RequisitionInventoryReservation.ReleaseReservationForRejectedAsync(
+                _db, requisition, cancellationToken);
+            if (releaseError is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = releaseError;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            _db.RequisitionRecordItems.RemoveRange(requisition.Items);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            var reserveError = await RequisitionInventoryReservation.ApplyReservationForNewRequisitionAsync(
+                _db, model.ItemType, model.Items, cancellationToken);
+            if (reserveError is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                ModelState.AddModelError(string.Empty, reserveError);
+                ViewData["FormAction"] = nameof(Edit);
+                ViewData["EditId"] = id;
+                ViewData["SubmitLabel"] = "Save changes";
+                ViewData["PageHeading"] = "Edit requisition slip";
+                return View(nameof(Create), model);
+            }
+
+            requisition.RsNo = model.RsNo;
+            requisition.ItemType = model.ItemType;
+            requisition.Date = model.Date;
+            requisition.RequestorName = model.RequestorName.Trim();
+            requisition.RequestorPosition = model.RequestorPosition.Trim();
+            requisition.RequestorDivision = model.RequestorDivision.Trim();
+            requisition.Office = string.IsNullOrWhiteSpace(model.Office) ? null : model.Office.Trim();
+            requisition.MrIcsPosition = string.IsNullOrWhiteSpace(model.MrIcsPosition) ? null : model.MrIcsPosition.Trim();
+            requisition.Items = model.Items.Select(i => new RequisitionRecordItem
+            {
+                InventoryItemId = i.InventoryItemId,
+                SerialNo = string.IsNullOrWhiteSpace(i.SerialNo) ? null : i.SerialNo.Trim(),
+                Qty = i.Qty,
+                Unit = i.Unit.Trim(),
+                Purpose = i.Purpose.Trim(),
+                RfNo = string.IsNullOrWhiteSpace(i.RfNo) ? null : i.RfNo.Trim()
+            }).ToList();
+
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+
+        TempData["StatusMessage"] = "Requisition updated.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     [HttpGet]
@@ -239,6 +390,7 @@ public class RequisitionsController : Controller
             return Forbid();
 
         ViewData["CanTakeAction"] = canViewAsApprover && requisition.Status == RequisitionStatus.Pending;
+        ViewData["CanEdit"] = isRequestOwner && requisition.Status == RequisitionStatus.Pending;
 
         var canUseIssuanceNav = User.IsInRole(SmrsRoles.Encoder) || User.IsInRole(SmrsRoles.DepartmentHead);
         if (canViewAsApprover)

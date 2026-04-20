@@ -217,6 +217,59 @@ body.smrs-app-body {
   word-break: break-word;
 }
 
+/* Borrow slip: Schedule column — nested tables ignore parent width; grid + minmax keeps inputs inside */
+.smrs-slip-table td.smrs-schedule-cell {
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: top;
+}
+
+.smrs-borrow-schedule {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  container-type: inline-size;
+  container-name: borrow-schedule;
+}
+
+.smrs-borrow-schedule__block + .smrs-borrow-schedule__block {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--bs-border-color-translucent, rgba(0, 0, 0, 0.1));
+}
+
+.smrs-borrow-schedule__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-navy, #0f2940);
+  margin-bottom: 0.35rem;
+}
+
+.smrs-borrow-schedule__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.35rem 0.5rem;
+  align-items: end;
+}
+
+.smrs-borrow-schedule__grid .form-label {
+  margin-bottom: 0.15rem;
+}
+
+.smrs-borrow-schedule__grid input[type="date"],
+.smrs-borrow-schedule__grid input[type="time"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@container borrow-schedule (max-width: 240px) {
+  .smrs-borrow-schedule__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .smrs-card.smrs-card--page {
   padding: 2rem 2.25rem;
 }
@@ -274,6 +327,27 @@ body.smrs-app-body {
 
 .smrs-table-panel .table-responsive {
   margin: 0;
+}
+
+.smrs-table-panel--directory {
+  overflow-x: visible;
+}
+
+.smrs-table-panel--directory .smrs-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.smrs-table-panel--directory .smrs-table th,
+.smrs-table-panel--directory .smrs-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.smrs-table--directory td:last-child,
+.smrs-table--directory th:last-child {
+  white-space: normal;
 }
 
 .smrs-table {

@@ -2,13 +2,13 @@
 @{
     ViewData["Title"] = "User accounts";
     var editUserUrlBase = Url.Action("Edit", "Users") ?? "";
+    var showAddAccount = !ViewData.ModelState.IsValid;
 }
 
-<div class="smrs-page">
+<div class="smrs-page smrs-page--wide">
     <div class="smrs-card smrs-card--page">
         <header class="smrs-page-header">
-            <h1 class="h3 text-navy mb-1">User accounts</h1>
-            <p class="text-muted small mb-0">Add new logins and maintain the staff directory.</p>
+            <h1 class="h3 text-navy mb-1">User Directory</h1>
         </header>
 
         @if (TempData["StatusMessage"] is string ok)
@@ -20,24 +20,34 @@
             <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
         }
 
-        <section class="smrs-section">
-            <h2 class="smrs-section-heading">Add account</h2>
-            <div class="mx-auto" style="max-width: 520px;">
-                <partial name="_CreateUserForm" model="Model.Form" />
-            </div>
-        </section>
-
         <section class="smrs-section" id="accounts">
-            <h2 class="smrs-section-heading">Directory</h2>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <h2 class="smrs-section-heading mb-0">Click a row to open <strong>Edit</strong> or <strong>Delete</strong>.</h2>
+                <button type="button"
+                        class="btn btn-sm btn-gold text-navy fw-semibold"
+                        id="toggleAddAccountBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addUserModal">
+                    Add account
+                </button>
+            </div>
             @if (Model.Accounts is null || Model.Accounts.Count == 0)
             {
                 <p class="text-muted small mb-0">No accounts yet.</p>
             }
             else
             {
-                <p class="text-muted small mb-3 mb-md-4">Click a row to open <strong>Edit</strong> or <strong>Delete</strong>.</p>
-                <div class="table-responsive smrs-table-panel">
-                    <table class="table table-borderless align-middle smrs-table mb-0">
+                
+                <div class="smrs-table-panel smrs-table-panel--directory">
+                    <table class="table table-borderless align-middle smrs-table smrs-table--directory mb-0">
+                        <colgroup>
+                            <col style="width: 15%;" />
+                            <col style="width: 17%;" />
+                            <col style="width: 22%;" />
+                            <col style="width: 16%;" />
+                            <col style="width: 14%;" />
+                            <col style="width: 16%;" />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col">Username</th>
@@ -74,6 +84,23 @@
                 </div>
             }
         </section>
+
+    </div>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h2 class="modal-title h5 text-navy" id="addUserModalLabel">Add account</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div class="mx-auto" style="max-width: 520px;">
+                    <partial name="_CreateUserForm" model="Model.Form" view-data='new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(ViewData) { ["UseModalCancel"] = true }' />
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -116,6 +143,13 @@
             var editBase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(editUserUrlBase.TrimEnd('/')));
             var menu = document.getElementById('accountRowMenu');
             var tbody = document.querySelector('.smrs-table-panel tbody');
+            var showAddAccount = @Html.Raw(showAddAccount ? "true" : "false");
+            var addUserModal = document.getElementById('addUserModal');
+
+            if (showAddAccount && addUserModal && window.bootstrap) {
+                window.bootstrap.Modal.getOrCreateInstance(addUserModal).show();
+            }
+
             if (!menu || !tbody) return;
 
             var currentRow = null;

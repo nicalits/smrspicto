@@ -34,6 +34,7 @@
                                 <th>Items</th>
                                 <th>Status</th>
                                 <th>Under use</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -68,6 +69,12 @@
                                         else
                                         {
                                             <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (row.Status == RequisitionStatus.Pending)
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                                         }
                                     </td>
                                 </tr>

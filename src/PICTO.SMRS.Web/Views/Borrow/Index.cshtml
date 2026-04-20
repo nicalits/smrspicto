@@ -4,9 +4,22 @@
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
-        <header class="smrs-page-header">
-            <h1 class="h3 text-navy mb-1">Borrow</h1>
-            <p class="text-muted small mb-0">Request borrowed equipment or supplies. Form workflow will be added here.</p>
+        <header class="smrs-page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
+            <div>
+                <h1 class="h3 text-navy mb-1">Borrow</h1>
+                <p class="text-muted small mb-0">ICT equipment borrower&rsquo;s slip and return tracking.</p>
+            </div>
+            <a asp-action="Create" class="btn btn-gold text-navy fw-semibold">New borrower&rsquo;s slip</a>
         </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+
+        <section class="smrs-section mt-4">
+            <h2 class="h6 text-uppercase text-muted mb-3">My borrow requests</h2>
+            <div class="alert alert-secondary mb-0">Submitted slips will appear here after the borrow workflow is connected.</div>
+        </section>
     </div>
 </div>

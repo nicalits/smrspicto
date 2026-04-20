@@ -1,0 +1,383 @@
+@using PICTO.SMRS.Web.Models.Borrow
+@model BorrowCreateViewModel
+@{
+    ViewData["Title"] = "ICT Equipment Borrower's Slip";
+}
+
+<div class="smrs-page smrs-page--wide">
+    <div class="smrs-card smrs-card--page smrs-card--tight">
+        <section class="smrs-section">
+            <form asp-action="Create" method="post" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                <div>
+                    <table class="table table-bordered align-middle mb-2 smrs-slip-table">
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="bg-light text-center">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                        <div class="fw-semibold text-navy flex-grow-1 text-center">ICT Equipment Borrower's Slip</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <label asp-for="RfNo" class="small fw-semibold text-muted mb-0"></label>
+                                            <input asp-for="RfNo" class="form-control form-control-sm" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" />
+                                        </div>
+                                    </div>
+                                    <span asp-validation-for="RfNo" class="text-danger small d-block mt-1 text-end"></span>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td colspan="5" class="bg-light fw-semibold text-navy text-center">Borrower's Information</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <label asp-for="BorrowerName" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="BorrowerName" class="form-control form-control-sm" readonly />
+                                </td>
+                                <td colspan="1"></td>
+                                <td colspan="2">
+                                    <label asp-for="SlipDate" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="SlipDate" class="form-control form-control-sm" type="date" readonly />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <label asp-for="Office" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="Office" class="form-control form-control-sm" />
+                                    <span asp-validation-for="Office" class="text-danger small"></span>
+                                </td>
+                                <td colspan="1"></td>
+                                <td colspan="2">
+                                    <label asp-for="SlipTime" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="SlipTime" class="form-control form-control-sm" type="time" />
+                                    <span asp-validation-for="SlipTime" class="text-danger small"></span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">
+                                    <label asp-for="BorrowerDivision" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="BorrowerDivision" class="form-control form-control-sm" readonly />
+                                </td>
+                                <td colspan="1"></td>
+                                <td colspan="2">
+                                    <label asp-for="TelNo" class="form-label small text-muted mb-1"></label>
+                                    <input asp-for="TelNo" class="form-control form-control-sm" inputmode="tel" autocomplete="tel" />
+                                    <span asp-validation-for="TelNo" class="text-danger small"></span>
+                                </td>
+                            </tr>
+
+                            <tr class="bg-light text-center">
+                                <td class="fw-semibold" style="width: 26%;">Item Name</td>
+                                <td class="fw-semibold" style="width: 8%;">Qty</td>
+                                <td class="fw-semibold" style="width: 18%;">Location/Venue</td>
+                                <td class="fw-semibold" style="width: 18%;">Purpose</td>
+                                <td class="fw-semibold" style="width: 30%;">Schedule</td>
+                            </tr>
+                        </tbody>
+                        <tbody id="borrowItemsBody">
+                            @for (var i = 0; i < (Model.Items?.Count ?? 0); i++)
+                            {
+                                <tr class="borrow-item-row">
+                                    <td class="align-top">
+                                        <div class="d-flex gap-2 mb-1">
+                                            <input asp-for="Items[i].Description" class="form-control form-control-sm borrow-item-description" readonly />
+                                            <button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button>
+                                        </div>
+                                        <span asp-validation-for="Items[i].Description" class="text-danger small"></span>
+                                    </td>
+                                    <td class="align-top">
+                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm" type="number" min="1" />
+                                        <span asp-validation-for="Items[i].Qty" class="text-danger small"></span>
+                                    </td>
+                                    <td class="align-top">
+                                        <input asp-for="Items[i].LocationVenue" class="form-control form-control-sm" />
+                                        <span asp-validation-for="Items[i].LocationVenue" class="text-danger small"></span>
+                                    </td>
+                                    <td class="align-top">
+                                        <input asp-for="Items[i].Purpose" class="form-control form-control-sm" />
+                                        <span asp-validation-for="Items[i].Purpose" class="text-danger small"></span>
+                                    </td>
+                                    <td class="align-top p-2 smrs-schedule-cell">
+                                        <div class="smrs-borrow-schedule border rounded p-2 bg-body-secondary bg-opacity-25">
+                                            <div class="smrs-borrow-schedule__block">
+                                                <div class="smrs-borrow-schedule__label">Borrow</div>
+                                                <div class="smrs-borrow-schedule__grid">
+                                                    <div class="min-w-0">
+                                                        <label class="form-label small text-muted" asp-for="Items[i].BorrowDate"></label>
+                                                        <input asp-for="Items[i].BorrowDate" class="form-control form-control-sm" type="date" />
+                                                        <span asp-validation-for="Items[i].BorrowDate" class="text-danger small d-block"></span>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <label class="form-label small text-muted" asp-for="Items[i].BorrowTime"></label>
+                                                        <input asp-for="Items[i].BorrowTime" class="form-control form-control-sm" type="time" />
+                                                        <span asp-validation-for="Items[i].BorrowTime" class="text-danger small d-block"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="smrs-borrow-schedule__block">
+                                                <div class="smrs-borrow-schedule__label">Return</div>
+                                                <div class="smrs-borrow-schedule__grid">
+                                                    <div class="min-w-0">
+                                                        <label class="form-label small text-muted" asp-for="Items[i].ReturnDate"></label>
+                                                        <input asp-for="Items[i].ReturnDate" class="form-control form-control-sm" type="date" />
+                                                        <span asp-validation-for="Items[i].ReturnDate" class="text-danger small d-block"></span>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <label class="form-label small text-muted" asp-for="Items[i].ReturnTime"></label>
+                                                        <input asp-for="Items[i].ReturnTime" class="form-control form-control-sm" type="time" />
+                                                        <span asp-validation-for="Items[i].ReturnTime" class="text-danger small d-block"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end mt-2">
+                                            <button type="button" class="btn btn-sm btn-outline-danger borrow-remove-row px-2" title="Remove row">Remove</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tbody>
+                            <tr>
+                                <td colspan="5">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="borrowAddRow">Add row</button>
+                                        <span asp-validation-for="Items" class="text-danger small"></span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="5">
+                                    <label asp-for="Remarks" class="form-label small text-muted mb-1"></label>
+                                    <textarea asp-for="Remarks" class="form-control form-control-sm" rows="3" placeholder="Optional notes"></textarea>
+                                    <span asp-validation-for="Remarks" class="text-danger small"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-light-subtle">
+                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">Submit</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+<div id="borrowItemPickerModal" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,.35); z-index: 1080;">
+    <div class="position-absolute top-50 start-50 translate-middle bg-white rounded shadow p-3" style="width: min(980px, 95vw); max-height: 85vh; overflow: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 text-navy">Select borrow item</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="borrowItemPickerClose">Close</button>
+        </div>
+        <input id="borrowItemPickerSearch" type="search" class="form-control form-control-sm mb-2" placeholder="Search item, brand, specification, or unit..." />
+        <div class="table-responsive border rounded">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">Item</th>
+                        <th style="width: 18%;">Brand</th>
+                        <th style="width: 35%;">Specification</th>
+                        <th style="width: 10%;">Unit</th>
+                        <th style="width: 12%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="borrowItemPickerBody">
+                    <tr><td colspan="5" class="text-muted small">No items found.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var body = document.getElementById('borrowItemsBody');
+            var addBtn = document.getElementById('borrowAddRow');
+            if (!body || !addBtn) return;
+            var modal = document.getElementById('borrowItemPickerModal');
+            var modalBody = document.getElementById('borrowItemPickerBody');
+            var modalSearch = document.getElementById('borrowItemPickerSearch');
+            var modalClose = document.getElementById('borrowItemPickerClose');
+            var activeRow = null;
+            var itemsCache = [];
+
+            function itemSummary(item) {
+                var parts = [item.name, item.brand, item.specification].filter(function (part) {
+                    return !!(part && String(part).trim());
+                });
+                return parts.join(' - ');
+            }
+
+            function isItSupply(item) {
+                if (!item) return false;
+                if (typeof item.supplyGroup === 'number') return item.supplyGroup === 0;
+                var group = (item.supplyGroup || '').toString().toLowerCase();
+                return group === '' || group === 'itsupplies';
+            }
+
+            async function loadItems() {
+                if (itemsCache.length) return itemsCache;
+                try {
+                    var res = await fetch('@Url.Action("InventoryItems")', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) return [];
+                    var data = await res.json();
+                    itemsCache = (Array.isArray(data) ? data : []).filter(isItSupply);
+                    return itemsCache;
+                } catch (e) {
+                    itemsCache = [];
+                    return itemsCache;
+                }
+            }
+
+            function renderPickerRows() {
+                if (!modalBody) return;
+                var keyword = (modalSearch && modalSearch.value ? modalSearch.value : '').trim().toLowerCase();
+                var filtered = itemsCache.filter(function (it) {
+                    if (!keyword) return true;
+                    var haystack = [it.name || '', it.brand || '', it.specification || '', it.unit || ''].join(' ').toLowerCase();
+                    return haystack.indexOf(keyword) !== -1;
+                });
+
+                if (!filtered.length) {
+                    modalBody.innerHTML = '<tr><td colspan="5" class="text-muted small">No items found.</td></tr>';
+                    return;
+                }
+
+                modalBody.innerHTML = filtered.map(function (it) {
+                    return '<tr>' +
+                        '<td>' + (it.name || '') + '</td>' +
+                        '<td>' + ((it.brand || '').trim() || 'Unbranded') + '</td>' +
+                        '<td>' + ((it.specification || '').trim() || 'Standard configuration') + '</td>' +
+                        '<td>' + (it.unit || '') + '</td>' +
+                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary borrow-picker-select" data-id="' + it.id + '">Choose</button></td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            async function openPicker(row) {
+                activeRow = row;
+                await loadItems();
+                if (modalSearch) modalSearch.value = '';
+                renderPickerRows();
+                if (modal) modal.classList.remove('d-none');
+                if (modalSearch) modalSearch.focus();
+            }
+
+            function closePicker() {
+                activeRow = null;
+                if (modal) modal.classList.add('d-none');
+            }
+
+            function renumber() {
+                var rows = body.querySelectorAll('tr.borrow-item-row');
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var inputs = row.querySelectorAll('input[name], textarea[name]');
+                    inputs.forEach(function (inp) {
+                        var name = inp.getAttribute('name');
+                        if (!name) return;
+                        inp.setAttribute('name', name.replace(/Items\[\d+\]/g, 'Items[' + i + ']'));
+                        var id = inp.getAttribute('id');
+                        if (id) inp.setAttribute('id', id.replace(/Items_\d+__/g, 'Items_' + i + '__'));
+                    });
+
+                    var spans = row.querySelectorAll('span[data-valmsg-for]');
+                    spans.forEach(function (sp) {
+                        var f = sp.getAttribute('data-valmsg-for');
+                        if (!f) return;
+                        sp.setAttribute('data-valmsg-for', f.replace(/Items\[\d+\]/g, 'Items[' + i + ']'));
+                    });
+                }
+            }
+
+            function makeRow() {
+                var tr = document.createElement('tr');
+                tr.className = 'borrow-item-row';
+                tr.innerHTML =
+                    '<td class="align-top"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm borrow-item-description" name="Items[0].Description" readonly /><button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].Description" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top"><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].LocationVenue" /><span class="text-danger small" data-valmsg-for="Items[0].LocationVenue" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top p-2 smrs-schedule-cell">' +
+                    '<div class="smrs-borrow-schedule border rounded p-2 bg-body-secondary bg-opacity-25">' +
+                    '<div class="smrs-borrow-schedule__block"><div class="smrs-borrow-schedule__label">Borrow</div>' +
+                    '<div class="smrs-borrow-schedule__grid">' +
+                    '<div class="min-w-0"><label class="form-label small text-muted mb-0">Borrow date</label><input class="form-control form-control-sm" name="Items[0].BorrowDate" type="date" /><span class="text-danger small d-block" data-valmsg-for="Items[0].BorrowDate" data-valmsg-replace="true"></span></div>' +
+                    '<div class="min-w-0"><label class="form-label small text-muted mb-0">Borrow time</label><input class="form-control form-control-sm" name="Items[0].BorrowTime" type="time" /><span class="text-danger small d-block" data-valmsg-for="Items[0].BorrowTime" data-valmsg-replace="true"></span></div>' +
+                    '</div></div>' +
+                    '<div class="smrs-borrow-schedule__block"><div class="smrs-borrow-schedule__label">Return</div>' +
+                    '<div class="smrs-borrow-schedule__grid">' +
+                    '<div class="min-w-0"><label class="form-label small text-muted mb-0">Return date</label><input class="form-control form-control-sm" name="Items[0].ReturnDate" type="date" /><span class="text-danger small d-block" data-valmsg-for="Items[0].ReturnDate" data-valmsg-replace="true"></span></div>' +
+                    '<div class="min-w-0"><label class="form-label small text-muted mb-0">Return time</label><input class="form-control form-control-sm" name="Items[0].ReturnTime" type="time" /><span class="text-danger small d-block" data-valmsg-for="Items[0].ReturnTime" data-valmsg-replace="true"></span></div>' +
+                    '</div></div></div>' +
+                    '<div class="text-end mt-2"><button type="button" class="btn btn-sm btn-outline-danger borrow-remove-row px-2" title="Remove row">Remove</button></div>' +
+                    '</td>';
+                return tr;
+            }
+
+            addBtn.addEventListener('click', function () {
+                body.appendChild(makeRow());
+                renumber();
+            });
+
+            body.addEventListener('click', function (e) {
+                var pickBtn = e.target.closest('.borrow-open-item-picker');
+                if (pickBtn) {
+                    var pickRow = pickBtn.closest('tr.borrow-item-row');
+                    if (!pickRow) return;
+                    openPicker(pickRow);
+                    return;
+                }
+
+                var btn = e.target.closest('.borrow-remove-row');
+                if (!btn) return;
+                var tr = btn.closest('tr');
+                if (!tr) return;
+                tr.remove();
+                if (body.querySelectorAll('tr.borrow-item-row').length === 0) {
+                    body.appendChild(makeRow());
+                    renumber();
+                } else {
+                    renumber();
+                }
+            });
+
+            if (modalSearch) {
+                modalSearch.addEventListener('input', renderPickerRows);
+            }
+
+            if (modalClose) {
+                modalClose.addEventListener('click', closePicker);
+            }
+
+            if (modalBody) {
+                modalBody.addEventListener('click', function (e) {
+                    var chooseBtn = e.target.closest('.borrow-picker-select');
+                    if (!chooseBtn || !activeRow) return;
+                    var selectedId = parseInt(chooseBtn.getAttribute('data-id') || '0', 10);
+                    if (!selectedId) return;
+                    var selectedItem = itemsCache.find(function (it) { return it.id === selectedId; });
+                    var descInput = activeRow.querySelector('.borrow-item-description');
+                    if (descInput && selectedItem) {
+                        descInput.value = itemSummary(selectedItem);
+                    }
+                    closePicker();
+                });
+            }
+
+            if (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) closePicker();
+                });
+            }
+        })();
+    </script>
+}

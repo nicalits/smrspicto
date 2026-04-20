@@ -4,6 +4,7 @@
     var rsNo = string.IsNullOrWhiteSpace(Model.RsNo) ? $"#{Model.Id}" : Model.RsNo;
     ViewData["Title"] = $"Requisition {rsNo}";
     var canTakeAction = (bool?)ViewData["CanTakeAction"] == true;
+    var canEdit = (bool?)ViewData["CanEdit"] == true;
     var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
     var badgeClass = Model.Status switch
     {
@@ -89,6 +90,10 @@
         <section class="smrs-section mt-3">
             <div class="d-flex flex-wrap gap-2">
                 <a asp-action="@backAction" class="btn btn-outline-secondary">Back</a>
+                @if (canEdit)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Edit</a>
+                }
                 @if (canTakeAction)
                 {
                     <form asp-action="Approve" method="post" class="d-inline"
