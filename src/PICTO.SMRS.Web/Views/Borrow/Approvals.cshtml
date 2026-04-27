@@ -1,29 +1,20 @@
 @using PICTO.SMRS.Web.Models.Borrow
-@model IReadOnlyList<BorrowIndexRowViewModel>
+@model IReadOnlyList<BorrowApprovalRowViewModel>
 @{
-    ViewData["Title"] = "Borrow";
+    ViewData["Title"] = "Borrow Approvals";
 }
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
-        <header class="smrs-page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
-            <div>
-                <h1 class="h3 text-navy mb-1">Borrow</h1>
-                
-            </div>
-            <a asp-action="Create" class="btn btn-gold text-navy fw-semibold">New borrower&rsquo;s slip</a>
+        <header class="smrs-page-header">
+            <h1 class="h3 text-navy mb-1">Borrow Approvals</h1>
+            <p class="text-muted small mb-0">Approval queue for reviewing borrow requests.</p>
         </header>
 
-        @if (TempData["StatusMessage"] is string ok)
-        {
-            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
-        }
-
         <section class="smrs-section mt-4">
-            <h2 class="h6 text-uppercase text-muted mb-3">My borrow requests</h2>
             @if (Model.Count == 0)
             {
-                <div class="alert alert-secondary mb-0">You have no submitted borrow requests yet.</div>
+                <div class="alert alert-secondary mb-0">No borrow requests available.</div>
             }
             else
             {
@@ -33,6 +24,8 @@
                             <tr>
                                 <th>RF No.</th>
                                 <th>Date</th>
+                                <th>Borrower</th>
+                                <th>Division</th>
                                 <th>Items</th>
                                 <th>Status</th>
                                 <th>Issued</th>
@@ -49,10 +42,10 @@
                                     _ => "bg-warning text-dark"
                                 };
                                 <tr>
-                                    <td>
-                                        <a asp-action="Details" asp-route-id="@row.Id" class="text-decoration-none fw-semibold">@(string.IsNullOrWhiteSpace(row.RfNo) ? "—" : row.RfNo)</a>
-                                    </td>
+                                    <td>@(string.IsNullOrWhiteSpace(row.RfNo) ? "—" : row.RfNo)</td>
                                     <td>@row.SlipDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@row.BorrowerName</td>
+                                    <td>@row.BorrowerDivision</td>
                                     <td>@row.ItemCount</td>
                                     <td><span class="badge @badgeClass">@row.Status</span></td>
                                     <td>
@@ -67,10 +60,6 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        @if (row.Status == BorrowStatus.Pending)
-                                        {
-                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                                        }
                                         <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">View</a>
                                     </td>
                                 </tr>

@@ -1,0 +1,130 @@
+@using PICTO.SMRS.Web.Models.Borrow
+@model BorrowDetailsViewModel
+@{
+    var rfNo = string.IsNullOrWhiteSpace(Model.RfNo) ? $"#{Model.Id}" : Model.RfNo;
+    ViewData["Title"] = $"Borrow {rfNo}";
+    var canTakeAction = (bool?)ViewData["CanTakeAction"] == true;
+    var canEdit = (bool?)ViewData["CanEdit"] == true;
+    var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
+    var badgeClass = Model.Status switch
+    {
+        BorrowStatus.Approved => "bg-success",
+        BorrowStatus.Rejected => "bg-danger",
+        _ => "bg-warning text-dark"
+    };
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <h1 class="h3 text-navy mb-1">Borrow @rfNo</h1>
+                <p class="text-muted small mb-0">Submitted borrow request details and encoder decision.</p>
+            </div>
+            <span class="badge @badgeClass fs-6">@Model.Status</span>
+        </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+        @if (TempData["ErrorMessage"] is string err)
+        {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
+        }
+
+        <section class="smrs-section mt-4">
+            <div class="row g-3 small">
+                <div class="col-md-3"><span class="text-muted d-block">Date</span><span class="fw-semibold">@Model.SlipDate.ToString("yyyy-MM-dd")</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Time</span><span class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.SlipTime) ? "—" : Model.SlipTime)</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Borrower</span><span class="fw-semibold">@Model.BorrowerName</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Division</span><span class="fw-semibold">@Model.BorrowerDivision</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Office</span><span class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.Office) ? "—" : Model.Office)</span></div>
+                <div class="col-md-3"><span class="text-muted d-block">Tel No.</span><span class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.TelNo) ? "—" : Model.TelNo)</span></div>
+                @if (Model.IssuedAt is { } issuedAt)
+                {
+                    <div class="col-md-3">
+                        <span class="text-muted d-block">Issued</span>
+                        <span class="badge bg-primary">Issued</span>
+                        <span class="d-block fw-semibold mt-1">@issuedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                    </div>
+                }
+                @if (Model.RejectedAt is { } rejectedAt)
+                {
+                    <div class="col-md-3">
+                        <span class="text-muted d-block">Rejected</span>
+                        <span class="d-block fw-semibold">@rejectedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                    </div>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Remarks))
+            {
+                <div class="small mt-3">
+                    <span class="text-muted d-block">Remarks</span>
+                    <div class="fw-semibold">@Model.Remarks</div>
+                </div>
+            }
+        </section>
+
+        <section class="smrs-section mt-3">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Qty</th>
+                            <th>Location/Venue</th>
+                            <th>Purpose</th>
+                            <th>Borrow Schedule</th>
+                            <th>Return Schedule</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            var borrowSchedule = item.BorrowDate?.ToString("yyyy-MM-dd") ?? "—";
+                            if (!string.IsNullOrWhiteSpace(item.BorrowTime))
+                                borrowSchedule += $" {item.BorrowTime}";
+                            var returnSchedule = item.ReturnDate?.ToString("yyyy-MM-dd") ?? "—";
+                            if (!string.IsNullOrWhiteSpace(item.ReturnTime))
+                                returnSchedule += $" {item.ReturnTime}";
+                            <tr>
+                                <td>@item.Description</td>
+                                <td>@item.Qty</td>
+                                <td>@item.LocationVenue</td>
+                                <td>@item.Purpose</td>
+                                <td>@borrowSchedule</td>
+                                <td>@returnSchedule</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="smrs-section mt-3">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="@backAction" class="btn btn-outline-secondary">Back</a>
+                @if (canEdit)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Edit</a>
+                }
+                @if (canTakeAction)
+                {
+                    <form asp-action="Approve" method="post" class="d-inline"
+                          onsubmit="return confirm('Approve and issue this borrow request?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-success">Approve &amp; Issue</button>
+                    </form>
+                    <form asp-action="Reject" method="post" class="d-inline"
+                          onsubmit="return confirm('Reject this borrow request?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-danger">Reject</button>
+                    </form>
+                }
+            </div>
+        </section>
+    </div>
+</div>

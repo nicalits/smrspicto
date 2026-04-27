@@ -14,6 +14,8 @@
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionApproval)).Succeeded;
     var canViewCheckerQueue = User.Identity?.IsAuthenticated == true
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionChecker)).Succeeded;
+    var canApproveBorrow = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.BorrowApproval)).Succeeded;
     string ActiveClass(string c, string a, string? a2 = null)
     {
         var cOk = string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase);
@@ -38,30 +40,37 @@
         <span class="d-block small text-muted">Supply Monitoring &amp; Requisition</span>
     </div>
     <div class="smrs-sidenav-scroll flex-grow-1 overflow-y-auto py-2">
-        @* Add grouped sections (collapse + .smrs-sidenav-list) here as features ship. *@
-        <div class="smrs-sidenav-section">
-            <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavPrimary@(sx)" aria-expanded="true" aria-controls="smrsNavPrimary@(sx)">
-                <span>Navigation</span>
-                <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
-            </button>
-            <div class="collapse show" id="smrsNavPrimary@(sx)">
-                <nav class="smrs-sidenav-list">
-                    @if (!User.IsInRole(SmrsRoles.Employee))
-                    {
+        @if (!User.IsInRole(SmrsRoles.Employee))
+        {
+            <div class="smrs-sidenav-section">
+                <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavOverview@(sx)" aria-expanded="true" aria-controls="smrsNavOverview@(sx)">
+                    <span>Overview</span>
+                    <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+                </button>
+                <div class="collapse show" id="smrsNavOverview@(sx)">
+                    <nav class="smrs-sidenav-list">
                         <a asp-controller="Home" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Home", "Index")"
                            data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                             <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
                             <span>Master Dashboard</span>
                         </a>
-                    }
-                    @if (!User.IsInRole(SmrsRoles.Employee))
-                    {
                         <a asp-controller="Reports" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Reports", "Index")"
                            data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                             <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
                             <span>Reports</span>
                         </a>
-                    }
+                    </nav>
+                </div>
+            </div>
+        }
+
+        <div class="smrs-sidenav-section">
+            <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavRequisitions@(sx)" aria-expanded="true" aria-controls="smrsNavRequisitions@(sx)">
+                <span>Requisition Workflow</span>
+                <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+            </button>
+            <div class="collapse show" id="smrsNavRequisitions@(sx)">
+                <nav class="smrs-sidenav-list">
                     <a asp-controller="Requisitions" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Requisitions", "Index", "Create")"
                        data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                         <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.83V19h2v-4.17l1.59 1.59L16 15.01 12.01 11 8 15.01z"/></svg>
@@ -91,29 +100,62 @@
                             <span>Checker</span>
                         </a>
                     }
-                    <a asp-controller="Borrow" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Borrow", "Index")"
+                </nav>
+            </div>
+        </div>
+
+        <div class="smrs-sidenav-section">
+            <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavBorrowing@(sx)" aria-expanded="true" aria-controls="smrsNavBorrowing@(sx)">
+                <span>Borrowing</span>
+                <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+            </button>
+            <div class="collapse show" id="smrsNavBorrowing@(sx)">
+                <nav class="smrs-sidenav-list">
+                    <a asp-controller="Borrow" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Borrow", "Index", "Create")"
                        data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                         <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4L13 5v3H6v2h7v3l3.99-4z"/></svg>
                         <span>Borrow</span>
                     </a>
-                    @if (canViewInventory)
+                    @if (canApproveBorrow)
                     {
-                        <a asp-controller="Inventory" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Inventory", "Index", "Create")"
+                        <a asp-controller="Borrow" asp-action="Approvals" class="smrs-sidenav-link @ActiveClass("Borrow", "Approvals")"
                            data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
-                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 12 7.4l3.38 4.6L17 10.83 14.92 8H20v6z"/></svg>
-                            <span>Inventory</span>
-                        </a>
-                    }
-                    @if (canManageUsers)
-                    {
-                        <a asp-controller="Users" asp-action="Create" class="smrs-sidenav-link @ActiveUserManagement()"
-                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
-                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-                            <span>User Management</span>
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V5l-8-3zm-1 14-4-4 1.41-1.41L11 13.17l5.59-5.59L18 9l-7 7z"/></svg>
+                            <span>Borrow Approvals</span>
                         </a>
                     }
                 </nav>
             </div>
         </div>
+
+        @if (canViewInventory || canManageUsers)
+        {
+            <div class="smrs-sidenav-section">
+                <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavManagement@(sx)" aria-expanded="true" aria-controls="smrsNavManagement@(sx)">
+                    <span>Management</span>
+                    <svg class="smrs-sidenav-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M6 8L1 3h10z"/></svg>
+                </button>
+                <div class="collapse show" id="smrsNavManagement@(sx)">
+                    <nav class="smrs-sidenav-list">
+                        @if (canViewInventory)
+                        {
+                            <a asp-controller="Inventory" asp-action="Index" class="smrs-sidenav-link @ActiveClass("Inventory", "Index", "Create")"
+                               data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                                <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 12 7.4l3.38 4.6L17 10.83 14.92 8H20v6z"/></svg>
+                                <span>Inventory</span>
+                            </a>
+                        }
+                        @if (canManageUsers)
+                        {
+                            <a asp-controller="Users" asp-action="Create" class="smrs-sidenav-link @ActiveUserManagement()"
+                               data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                                <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                                <span>User Management</span>
+                            </a>
+                        }
+                    </nav>
+                </div>
+            </div>
+        }
     </div>
 </div>

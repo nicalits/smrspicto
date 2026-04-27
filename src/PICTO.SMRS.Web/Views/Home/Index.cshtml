@@ -76,20 +76,4 @@
             </div>
         </article>
     </section>
-
-    <section class="smrs-card smrs-card--page smrs-card--tight mt-3">
-        <h2 class="h5 text-navy mb-3">Quick actions</h2>
-        <div class="smrs-dashboard-actions">
-            <a asp-controller="Requisitions" asp-action="Index" class="btn btn-sm btn-primary">Requisitions</a>
-            <a asp-controller="Borrow" asp-action="Index" class="btn btn-sm btn-primary">Borrow</a>
-            <a asp-controller="Inventory" asp-action="Index" class="btn btn-sm btn-outline-secondary">Inventory</a>
-            <a asp-controller="Requisitions" asp-action="Approvals" class="btn btn-sm btn-outline-secondary">Approvals</a>
-            <a asp-controller="Requisitions" asp-action="Checker" class="btn btn-sm btn-outline-secondary">Checker</a>
-            <a asp-controller="Requisitions" asp-action="Issuance" class="btn btn-sm btn-outline-secondary">Issuance</a>
-            @if (User.IsInRole(SmrsRoles.DepartmentHead))
-            {
-                <a asp-controller="Users" asp-action="Create" class="btn btn-sm btn-outline-secondary">User Management</a>
-            }
-        </div>
-    </section>
 </div>

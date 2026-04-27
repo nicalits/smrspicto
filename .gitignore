@@ -9,6 +9,10 @@ _build_out/
 _build_out2/
 _bin_nav/
 _obj_nav/
+_build_verify*/
+_obj_verify*/
+**/_build_verify*/
+**/_obj_verify*/
 *.user
 *.suo
 *.pdb

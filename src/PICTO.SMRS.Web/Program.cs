@@ -50,6 +50,8 @@ builder.Services.AddAuthorization(options =>
             SmrsRoles.OfficeDivisionHead));
     options.AddPolicy(SmrsPolicies.RequisitionChecker, policy =>
         policy.RequireRole(SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
+    options.AddPolicy(SmrsPolicies.BorrowApproval, policy =>
+        policy.RequireRole(SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
     options.AddPolicy(SmrsPolicies.InventoryAccess, policy =>
         policy.RequireAssertion(ctx =>
             ctx.User.Identity?.IsAuthenticated == true

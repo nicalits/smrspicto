@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PICTO.SMRS.Web.Models.Borrow;
 using PICTO.SMRS.Web.Models.Inventory;
 using PICTO.SMRS.Web.Models.Requisitions;
 
@@ -12,6 +13,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<InventoryItemSerial> InventoryItemSerials => Set<InventoryItemSerial>();
     public DbSet<RequisitionRecord> RequisitionRecords => Set<RequisitionRecord>();
     public DbSet<RequisitionRecordItem> RequisitionRecordItems => Set<RequisitionRecordItem>();
+    public DbSet<BorrowRecord> BorrowRecords => Set<BorrowRecord>();
+    public DbSet<BorrowRecordItem> BorrowRecordItems => Set<BorrowRecordItem>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -64,6 +67,34 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.HasOne(x => x.RequisitionRecord)
                 .WithMany(r => r.Items)
                 .HasForeignKey(x => x.RequisitionRecordId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<BorrowRecord>(e =>
+        {
+            e.Property(x => x.RfNo).HasMaxLength(20);
+            e.Property(x => x.BorrowerUserId).HasMaxLength(450).IsRequired();
+            e.Property(x => x.BorrowerName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.BorrowerDivision).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Office).HasMaxLength(200);
+            e.Property(x => x.SlipTime).HasMaxLength(20);
+            e.Property(x => x.TelNo).HasMaxLength(50);
+            e.Property(x => x.Remarks).HasMaxLength(2000);
+            e.Property(x => x.ActionedByUserId).HasMaxLength(450);
+            e.HasIndex(x => new { x.Status, x.CreatedAt });
+            e.HasIndex(x => x.BorrowerUserId);
+        });
+
+        builder.Entity<BorrowRecordItem>(e =>
+        {
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.Property(x => x.LocationVenue).HasMaxLength(300).IsRequired();
+            e.Property(x => x.Purpose).HasMaxLength(300).IsRequired();
+            e.Property(x => x.BorrowTime).HasMaxLength(20);
+            e.Property(x => x.ReturnTime).HasMaxLength(20);
+            e.HasOne(x => x.BorrowRecord)
+                .WithMany(r => r.Items)
+                .HasForeignKey(x => x.BorrowRecordId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

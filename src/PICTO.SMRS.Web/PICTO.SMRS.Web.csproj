@@ -33,6 +33,8 @@
     <None Remove="obj\**\*" />
     <None Remove="_build_verify*\**\*" />
     <None Remove="_obj_verify*\**\*" />
+    <Watch Remove="_build_verify*\**\*" />
+    <Watch Remove="_obj_verify*\**\*" />
   </ItemGroup>
 
 </Project>

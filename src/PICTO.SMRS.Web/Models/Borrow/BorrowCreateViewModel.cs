@@ -4,6 +4,8 @@ namespace PICTO.SMRS.Web.Models.Borrow;
 
 public class BorrowLineItemViewModel
 {
+    public int? InventoryItemId { get; set; }
+
     [Required]
     [Display(Name = "Item Description")]
     [StringLength(500)]

@@ -65,6 +65,10 @@ body.smrs-app-body {
   border-radius: 6px;
 }
 
+.smrs-sidenav-section + .smrs-sidenav-section {
+  margin-top: 0.25rem;
+}
+
 .smrs-sidenav-heading {
   display: flex;
   align-items: center;

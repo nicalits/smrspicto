@@ -4,6 +4,7 @@ public static class SmrsPolicies
 {
     public const string UserManagement = nameof(UserManagement);
     public const string RequisitionApproval = nameof(RequisitionApproval);
+    public const string BorrowApproval = nameof(BorrowApproval);
 
     /// <summary>Approved requisitions queue for encoders and department heads (all supply types).</summary>
     public const string RequisitionChecker = nameof(RequisitionChecker);

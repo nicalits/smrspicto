@@ -1,14 +1,22 @@
 @using PICTO.SMRS.Web.Models.Borrow
 @model BorrowCreateViewModel
 @{
-    ViewData["Title"] = "ICT Equipment Borrower's Slip";
+    var formAction = ViewData["FormAction"]?.ToString() ?? "Create";
+    var submitLabel = ViewData["SubmitLabel"]?.ToString() ?? "Submit";
+    var pageHeading = ViewData["PageHeading"]?.ToString() ?? "ICT Equipment Borrower's Slip";
+    var editId = ViewData["EditId"] as int?;
+    ViewData["Title"] = pageHeading;
 }
 
 <div class="smrs-page smrs-page--wide">
     <div class="smrs-card smrs-card--page smrs-card--tight">
         <section class="smrs-section">
-            <form asp-action="Create" method="post" novalidate>
+            <form asp-action="@formAction" method="post" novalidate>
                 @Html.AntiForgeryToken()
+                @if (editId is int id)
+                {
+                    <input type="hidden" name="id" value="@id" />
+                }
                 <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
 
                 <div>
@@ -17,7 +25,7 @@
                             <tr>
                                 <td colspan="5" class="bg-light text-center">
                                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                                        <div class="fw-semibold text-navy flex-grow-1 text-center">ICT Equipment Borrower's Slip</div>
+                                        <div class="fw-semibold text-navy flex-grow-1 text-center">@pageHeading</div>
                                         <div class="d-flex align-items-center gap-2">
                                             <label asp-for="RfNo" class="small fw-semibold text-muted mb-0"></label>
                                             <input asp-for="RfNo" class="form-control form-control-sm" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" />
@@ -81,6 +89,7 @@
                                 <tr class="borrow-item-row">
                                     <td class="align-top">
                                         <div class="d-flex gap-2 mb-1">
+                                            <input asp-for="Items[i].InventoryItemId" type="hidden" class="borrow-item-id" />
                                             <input asp-for="Items[i].Description" class="form-control form-control-sm borrow-item-description" readonly />
                                             <button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button>
                                         </div>
@@ -159,7 +168,7 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-light-subtle">
-                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">Submit</button>
+                    <button type="submit" class="btn btn-gold text-navy fw-semibold px-4">@submitLabel</button>
                     <a asp-action="Index" class="btn btn-outline-secondary">Back</a>
                 </div>
             </form>
@@ -302,7 +311,7 @@
                 var tr = document.createElement('tr');
                 tr.className = 'borrow-item-row';
                 tr.innerHTML =
-                    '<td class="align-top"><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm borrow-item-description" name="Items[0].Description" readonly /><button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].Description" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top"><div class="d-flex gap-2 mb-1"><input type="hidden" class="borrow-item-id" name="Items[0].InventoryItemId" /><input class="form-control form-control-sm borrow-item-description" name="Items[0].Description" readonly /><button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].Description" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top"><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].LocationVenue" /><span class="text-danger small" data-valmsg-for="Items[0].LocationVenue" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
@@ -365,7 +374,11 @@
                     var selectedId = parseInt(chooseBtn.getAttribute('data-id') || '0', 10);
                     if (!selectedId) return;
                     var selectedItem = itemsCache.find(function (it) { return it.id === selectedId; });
+                    var idInput = activeRow.querySelector('.borrow-item-id');
                     var descInput = activeRow.querySelector('.borrow-item-description');
+                    if (idInput) {
+                        idInput.value = selectedItem ? selectedItem.id : '';
+                    }
                     if (descInput && selectedItem) {
                         descInput.value = itemSummary(selectedItem);
                     }
