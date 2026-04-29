@@ -5,9 +5,9 @@ using PICTO.SMRS.Web.Models.Requisitions;
 
 namespace PICTO.SMRS.Web.Services;
 
-public static class RequisitionInventoryReservation
+public static class RequisitionInventoryStock
 {
-    public static async Task<string?> ApplyReservationForNewRequisitionAsync(
+    public static async Task<string?> ValidateNewRequisitionStockAsync(
         ApplicationDbContext db,
         RequisitionItemType requisitionItemType,
         IReadOnlyList<RequisitionLineItemViewModel> lines,
@@ -32,13 +32,15 @@ public static class RequisitionInventoryReservation
         if (invItems.Count != ids.Count)
             return "One or more selected inventory items could not be found.";
 
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(db, ids, cancellationToken);
+
         foreach (var inv in invItems)
         {
             if (!SupplyGroupMatches(requisitionItemType, inv.SupplyGroup))
                 return $"Item \"{inv.ItemName}\" does not match the requisition type (IT vs office).";
 
             var need = agg[inv.Id];
-            var available = inv.Quantity - inv.ReservedQuantity;
+            var available = Math.Max(0, inv.Quantity - unavailableByItemId.GetValueOrDefault(inv.Id));
             if (need > available)
                 return $"Not enough available stock for \"{inv.ItemName}\" (available {available}, requested {need}).";
         }
@@ -60,7 +62,7 @@ public static class RequisitionInventoryReservation
                 var taken = await (
                     from ri in db.RequisitionRecordItems
                     join r in db.RequisitionRecords on ri.RequisitionRecordId equals r.Id
-                    where r.Status == RequisitionStatus.Pending
+                    where (r.Status == RequisitionStatus.Pending || r.Status == RequisitionStatus.Approved)
                           && ri.InventoryItemId == inv.Id
                           && ri.SerialNo != null
                           && ri.SerialNo == sn
@@ -69,31 +71,6 @@ public static class RequisitionInventoryReservation
                     return $"Serial \"{sn}\" is already on another pending requisition.";
             }
         }
-
-        foreach (var inv in invItems)
-            inv.ReservedQuantity += agg[inv.Id];
-
-        return null;
-    }
-
-    public static async Task<string?> ReleaseReservationForRejectedAsync(
-        ApplicationDbContext db,
-        RequisitionRecord requisition,
-        CancellationToken cancellationToken = default)
-    {
-        var agg = requisition.Items
-            .GroupBy(i => i.InventoryItemId)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
-
-        var invItems = await db.InventoryItems
-            .Where(i => agg.Keys.Contains(i.Id))
-            .ToListAsync(cancellationToken);
-
-        if (invItems.Count != agg.Count)
-            return "Could not update inventory while releasing this reservation.";
-
-        foreach (var inv in invItems)
-            inv.ReservedQuantity = Math.Max(0, inv.ReservedQuantity - agg[inv.Id]);
 
         return null;
     }
@@ -107,17 +84,24 @@ public static class RequisitionInventoryReservation
         var invById = await db.InventoryItems
             .Where(i => itemIds.Contains(i.Id))
             .ToDictionaryAsync(i => i.Id, cancellationToken);
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(db, itemIds, cancellationToken);
+        var requestedByItemId = requisition.Items
+            .GroupBy(i => i.InventoryItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
+
+        foreach (var (itemId, requestedQty) in requestedByItemId)
+        {
+            if (!invById.TryGetValue(itemId, out var inv))
+                return "An inventory item on this requisition no longer exists.";
+
+            var available = Math.Max(0, inv.Quantity - unavailableByItemId.GetValueOrDefault(inv.Id));
+            if (requestedQty > available)
+                return $"Insufficient stock to finalize \"{inv.ItemName}\" (available {available}, line requests {requestedQty}).";
+        }
 
         foreach (var line in requisition.Items)
         {
-            if (!invById.TryGetValue(line.InventoryItemId, out var inv))
-                return "An inventory item on this requisition no longer exists.";
-
-            if (line.Qty > inv.Quantity)
-                return $"Insufficient stock to finalize \"{inv.ItemName}\" (on hand {inv.Quantity}, line requests {line.Qty}).";
-
-            inv.ReservedQuantity = Math.Max(0, inv.ReservedQuantity - line.Qty);
-            inv.Quantity -= line.Qty;
+            var inv = invById[line.InventoryItemId];
 
             if (inv.IsSerialized)
             {
@@ -132,10 +116,29 @@ public static class RequisitionInventoryReservation
                 if (serialEntity is null)
                     return $"Serial \"{sn}\" was not found for \"{inv.ItemName}\".";
 
-                db.InventoryItemSerials.Remove(serialEntity);
+                var taken = await (
+                    from ri in db.RequisitionRecordItems
+                    join r in db.RequisitionRecords on ri.RequisitionRecordId equals r.Id
+                    where r.Status == RequisitionStatus.Approved
+                          && r.MarkedInUseAt != null
+                          && ri.InventoryItemId == inv.Id
+                          && ri.SerialNo != null
+                          && ri.SerialNo == sn
+                    select ri).AnyAsync(cancellationToken);
+                if (taken)
+                    return $"Serial \"{sn}\" is already issued for \"{inv.ItemName}\".";
             }
         }
 
+        return null;
+    }
+
+    public static async Task<string?> RestoreFulfilledApprovalAsync(
+        ApplicationDbContext db,
+        RequisitionRecord requisition,
+        CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
         return null;
     }
 

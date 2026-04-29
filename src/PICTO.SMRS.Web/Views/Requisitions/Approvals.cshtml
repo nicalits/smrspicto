@@ -11,6 +11,15 @@
             
         </header>
 
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+        @if (TempData["ErrorMessage"] is string err)
+        {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
+        }
+
         <section class="smrs-section mt-4">
             @if (Model.Count == 0)
             {
@@ -68,7 +77,18 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                            <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                            @if (row.Status == RequisitionStatus.Approved && row.MarkedInUseAt is null)
+                                            {
+                                                <form asp-action="CancelApproval" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Cancel this approval? The requisition will return to Pending and will no longer be ready for checker issuance.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@row.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-warning">Cancel approval</button>
+                                                </form>
+                                            }
+                                        </div>
                                     </td>
                                 </tr>
                             }

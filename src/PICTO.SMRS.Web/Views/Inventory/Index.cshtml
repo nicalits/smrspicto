@@ -83,9 +83,6 @@
                                     <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="total" asp-route-dir="@NextDir("total")" class="text-reset text-decoration-none">Total Amount @SortIndicator("total")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="reserved" asp-route-dir="@NextDir("reserved")" class="text-reset text-decoration-none">Reserved @SortIndicator("reserved")</a>
-                                </th>
-                                <th scope="col" class="text-end">
                                     <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="available" asp-route-dir="@NextDir("available")" class="text-reset text-decoration-none">Available @SortIndicator("available")</a>
                                 </th>
                                 <th scope="col" class="text-end">
@@ -125,7 +122,6 @@
                                     <td class="text-end">@row.Quantity</td>
                                     <td class="text-end">@row.UnitPrice.ToPeso()</td>
                                     <td class="text-end fw-semibold">@row.TotalAmount.ToPeso()</td>
-                                    <td class="text-end">@row.ReservedQuantity</td>
                                     <td class="text-end fw-semibold">@row.AvailableQuantity</td>
                                     <td class="text-end">@row.LowStockLevel</td>
                                     <td>@(row.Location ?? "—")</td>

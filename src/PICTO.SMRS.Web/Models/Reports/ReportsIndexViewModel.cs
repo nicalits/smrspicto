@@ -16,9 +16,17 @@ public sealed class ReportsIndexViewModel
 
     public int InUseUnits { get; init; }
 
+    public int UnitsOutForBorrowing { get; init; }
+
     public int PendingRequisitions { get; init; }
 
     public int RequisitionsInRange { get; init; }
+
+    public int ItRequestsInRange { get; init; }
+
+    public int OfficeRequestsInRange { get; init; }
+
+    public int BorrowRequestsInRange { get; init; }
 
     public decimal InventoryValue { get; init; }
 

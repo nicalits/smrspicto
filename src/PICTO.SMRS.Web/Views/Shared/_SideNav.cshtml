@@ -16,6 +16,8 @@
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.RequisitionChecker)).Succeeded;
     var canApproveBorrow = User.Identity?.IsAuthenticated == true
         && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.BorrowApproval)).Succeeded;
+    var canViewOverview = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, SmrsPolicies.OverviewAccess)).Succeeded;
     string ActiveClass(string c, string a, string? a2 = null)
     {
         var cOk = string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase);
@@ -40,7 +42,7 @@
         <span class="d-block small text-muted">Supply Monitoring &amp; Requisition</span>
     </div>
     <div class="smrs-sidenav-scroll flex-grow-1 overflow-y-auto py-2">
-        @if (!User.IsInRole(SmrsRoles.Employee))
+        @if (canViewOverview)
         {
             <div class="smrs-sidenav-section">
                 <button class="smrs-sidenav-heading" type="button" data-bs-toggle="collapse" data-bs-target="#smrsNavOverview@(sx)" aria-expanded="true" aria-controls="smrsNavOverview@(sx)">
@@ -89,15 +91,15 @@
                     }
                     @if (canViewCheckerQueue)
                     {
-                        <a asp-controller="Requisitions" asp-action="Issuance" class="smrs-sidenav-link @ActiveClass("Requisitions", "Issuance")"
-                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
-                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                            <span>Issuance</span>
-                        </a>
                         <a asp-controller="Requisitions" asp-action="Checker" class="smrs-sidenav-link @ActiveClass("Requisitions", "Checker")"
                            data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
                             <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14H7v-2h3v2zm0-4H7v-2h3v2zm0-4H7V7h3v2zm4 8h-3v-2h3v2zm0-4h-3v-2h3v2zm0-4h-3V7h3v2z"/></svg>
                             <span>Checker</span>
+                        </a>
+                        <a asp-controller="Requisitions" asp-action="Issuance" class="smrs-sidenav-link @ActiveClass("Requisitions", "Issuance")"
+                           data-bs-dismiss="@(isOffcanvas ? "offcanvas" : "")">
+                            <svg class="smrs-sidenav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                            <span>Issuance</span>
                         </a>
                     }
                 </nav>

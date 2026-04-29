@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using PICTO.SMRS.Web.Data;
 using PICTO.SMRS.Web.Models.Inventory;
 using PICTO.SMRS.Web.Models.Borrow;
 using PICTO.SMRS.Web.Security;
+using PICTO.SMRS.Web.Services;
 
 namespace PICTO.SMRS.Web.Controllers;
 
@@ -341,22 +343,75 @@ public class BorrowController : Controller
     [Authorize(Policy = SmrsPolicies.BorrowApproval)]
     public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
     {
-        var borrow = await _db.BorrowRecords.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
-        if (borrow is null)
-            return NotFound();
-
-        if (borrow.Status != BorrowStatus.Pending)
+        await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
         {
-            TempData["ErrorMessage"] = "This borrow request is already processed.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
+            var borrow = await _db.BorrowRecords
+                .Include(r => r.Items)
+                .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+            if (borrow is null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return NotFound();
+            }
 
-        var now = DateTimeOffset.UtcNow;
-        borrow.Status = BorrowStatus.Approved;
-        borrow.ApprovedAt = now;
-        borrow.IssuedAt = now;
-        borrow.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        await _db.SaveChangesAsync(cancellationToken);
+            if (borrow.Status != BorrowStatus.Pending)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "This borrow request is already processed.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (borrow.Items.Any(i => !i.InventoryItemId.HasValue))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "Every borrowed item must be linked to inventory before approval.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var requestedByItemId = borrow.Items
+                .GroupBy(i => i.InventoryItemId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(i => i.Qty));
+
+            var inventoryItems = await _db.InventoryItems
+                .Where(i => requestedByItemId.Keys.Contains(i.Id))
+                .ToListAsync(cancellationToken);
+
+            if (inventoryItems.Count != requestedByItemId.Count)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "One or more selected inventory items could not be found.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
+                _db,
+                requestedByItemId.Keys.ToList(),
+                cancellationToken);
+
+            foreach (var inv in inventoryItems)
+            {
+                var requestedQty = requestedByItemId[inv.Id];
+                var available = Math.Max(0, inv.Quantity - unavailableByItemId.GetValueOrDefault(inv.Id));
+                if (requestedQty > available)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    _db.ChangeTracker.Clear();
+                    TempData["ErrorMessage"] = $"Not enough available stock for \"{inv.ItemName}\" (available {available}, requested {requestedQty}).";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            borrow.Status = BorrowStatus.Approved;
+            borrow.ApprovedAt = now;
+            borrow.IssuedAt = now;
+            borrow.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
 
         TempData["StatusMessage"] = "Borrow request approved and issued.";
         return RedirectToAction(nameof(Details), new { id });

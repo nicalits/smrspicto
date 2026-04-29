@@ -17,62 +17,74 @@
         <article class="smrs-card smrs-card--page smrs-card--tight">
             <h2 class="smrs-dashboard-group-title">Workflow queues</h2>
             <div class="smrs-dashboard-kpis">
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Approvals Queue</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.ApprovalsQueue</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Checker Queue</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.CheckerQueue</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Issuance Queue</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.IssuanceQueue</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Borrow Unreturned</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.BorrowUnreturned</strong>
-                </article>
+                @if (Model.ShowPendingApprovals)
+                {
+                    <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">@Model.PendingApprovalsLabel</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.PendingApprovals</strong>
+                    </a>
+                }
+                @if (Model.ShowRequisitionCheckingQueues)
+                {
+                    <a asp-controller="Requisitions" asp-action="Checker" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">Checking Queue</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.PendingCheckingQueue</strong>
+                    </a>
+                    <a asp-controller="Requisitions" asp-action="Issuance" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">Pending Issuance</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.PendingIssuance</strong>
+                    </a>
+                }
+                @if (Model.ShowBorrowDashboardInfo)
+                {
+                    <a asp-controller="Borrow" asp-action="Index" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">Pending Borrow Request</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.PendingBorrowRequests</strong>
+                    </a>
+                    <a asp-controller="Borrow" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">Pending Borrow Approval</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.PendingBorrowApprovals</strong>
+                    </a>
+                }
             </div>
         </article>
 
         <article class="smrs-card smrs-card--page smrs-card--tight">
             <h2 class="smrs-dashboard-group-title">Inventory overview</h2>
             <div class="smrs-dashboard-kpis">
-                <article class="smrs-dashboard-kpi">
+                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="IT Supplies" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                     <span class="smrs-dashboard-kpi__label">IT Supplies</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.ItSuppliesEntries</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <strong class="smrs-dashboard-kpi__value">@Model.ItAvailableUnits</strong>
+                            <span class="d-block small text-muted">Available</span>
+                        </div>
+                        <div class="text-end">
+                            <strong class="smrs-dashboard-kpi__value">@Model.ItUnitsUsed</strong>
+                            <span class="d-block small text-muted">In use</span>
+                        </div>
+                    </div>
+                </a>
+                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="Office Supplies" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                     <span class="smrs-dashboard-kpi__label">Office Supplies</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.OfficeSuppliesEntries</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Serialized Units</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.SerializedUnits</strong>
-                </article>
-            </div>
-        </article>
-
-        <article class="smrs-card smrs-card--page smrs-card--tight">
-            <h2 class="smrs-dashboard-group-title">Unit metrics</h2>
-            <div class="smrs-dashboard-kpis">
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Total Units</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.TotalUnits</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Reserved Units</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.ReservedUnits</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Available Units</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.AvailableUnits</strong>
-                </article>
-                <article class="smrs-dashboard-kpi">
-                    <span class="smrs-dashboard-kpi__label">Units Used</span>
-                    <strong class="smrs-dashboard-kpi__value">@Model.UnitsUsed</strong>
-                </article>
+                    <div class="d-flex justify-content-between gap-3">
+                        <div>
+                            <strong class="smrs-dashboard-kpi__value">@Model.OfficeAvailableUnits</strong>
+                            <span class="d-block small text-muted">Available</span>
+                        </div>
+                        <div class="text-end">
+                            <strong class="smrs-dashboard-kpi__value">@Model.OfficeUnitsUsed</strong>
+                            <span class="d-block small text-muted">In use</span>
+                        </div>
+                    </div>
+                </a>
+                @if (Model.ShowBorrowDashboardInfo)
+                {
+                    <a asp-controller="Borrow" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                        <span class="smrs-dashboard-kpi__label">Borrowed Items</span>
+                        <strong class="smrs-dashboard-kpi__value">@Model.BorrowedItems</strong>
+                    </a>
+                }
             </div>
         </article>
     </section>

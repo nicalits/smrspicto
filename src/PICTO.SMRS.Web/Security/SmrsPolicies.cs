@@ -2,6 +2,9 @@ namespace PICTO.SMRS.Web.Security;
 
 public static class SmrsPolicies
 {
+    /// <summary>Dashboard and reporting views for staff roles above Employee.</summary>
+    public const string OverviewAccess = nameof(OverviewAccess);
+
     public const string UserManagement = nameof(UserManagement);
     public const string RequisitionApproval = nameof(RequisitionApproval);
     public const string BorrowApproval = nameof(BorrowApproval);

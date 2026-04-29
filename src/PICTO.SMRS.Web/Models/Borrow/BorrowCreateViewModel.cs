@@ -43,8 +43,9 @@ public class BorrowLineItemViewModel
 public class BorrowCreateViewModel
 {
     [Display(Name = "RF No.")]
+    [Required(ErrorMessage = "RF No. is required.")]
     [StringLength(7)]
-    [RegularExpression(@"^$|^\d{2}-\d{4}$", ErrorMessage = "RF No. must be in the format 00-0000.")]
+    [RegularExpression(@"^\d{2}-\d{4}$", ErrorMessage = "RF No. must be in the format 00-0000.")]
     public string? RfNo { get; set; }
 
     [Display(Name = "Date")]

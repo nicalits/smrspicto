@@ -115,7 +115,7 @@ public class RequisitionsController : Controller
 
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
         {
-            var reserveError = await RequisitionInventoryReservation.ApplyReservationForNewRequisitionAsync(
+            var reserveError = await RequisitionInventoryStock.ValidateNewRequisitionStockAsync(
                 _db, model.ItemType, model.Items, cancellationToken);
             if (reserveError is not null)
             {
@@ -229,20 +229,10 @@ public class RequisitionsController : Controller
 
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
         {
-            var releaseError = await RequisitionInventoryReservation.ReleaseReservationForRejectedAsync(
-                _db, requisition, cancellationToken);
-            if (releaseError is not null)
-            {
-                await tx.RollbackAsync(cancellationToken);
-                _db.ChangeTracker.Clear();
-                TempData["ErrorMessage"] = releaseError;
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             _db.RequisitionRecordItems.RemoveRange(requisition.Items);
             await _db.SaveChangesAsync(cancellationToken);
 
-            var reserveError = await RequisitionInventoryReservation.ApplyReservationForNewRequisitionAsync(
+            var reserveError = await RequisitionInventoryStock.ValidateNewRequisitionStockAsync(
                 _db, model.ItemType, model.Items, cancellationToken);
             if (reserveError is not null)
             {
@@ -345,7 +335,7 @@ public class RequisitionsController : Controller
         var rows = await _db.RequisitionRecords
             .AsNoTracking()
             .Include(r => r.Items)
-            .Where(r => r.Status == RequisitionStatus.Approved)
+            .Where(r => r.Status == RequisitionStatus.Approved && r.MarkedInUseAt == null)
             .OrderBy(r => r.CreatedAt)
             .Select(r => new RequisitionApprovalRowViewModel
             {
@@ -390,6 +380,9 @@ public class RequisitionsController : Controller
             return Forbid();
 
         ViewData["CanTakeAction"] = canViewAsApprover && requisition.Status == RequisitionStatus.Pending;
+        ViewData["CanCancelApproval"] = canViewAsApprover
+            && requisition.Status == RequisitionStatus.Approved
+            && requisition.MarkedInUseAt is null;
         ViewData["CanEdit"] = isRequestOwner && requisition.Status == RequisitionStatus.Pending;
 
         var canUseIssuanceNav = User.IsInRole(SmrsRoles.Encoder) || User.IsInRole(SmrsRoles.DepartmentHead);
@@ -476,7 +469,7 @@ public class RequisitionsController : Controller
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var fulfillError = await RequisitionInventoryReservation.FulfillApprovedAsync(_db, requisition, cancellationToken);
+            var fulfillError = await RequisitionInventoryStock.FulfillApprovedAsync(_db, requisition, cancellationToken);
             if (fulfillError is not null)
             {
                 await tx.RollbackAsync(cancellationToken);
@@ -524,16 +517,6 @@ public class RequisitionsController : Controller
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var releaseError = await RequisitionInventoryReservation.ReleaseReservationForRejectedAsync(
-                _db, requisition, cancellationToken);
-            if (releaseError is not null)
-            {
-                await tx.RollbackAsync(cancellationToken);
-                _db.ChangeTracker.Clear();
-                TempData["ErrorMessage"] = releaseError;
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             requisition.Status = RequisitionStatus.Rejected;
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -545,27 +528,107 @@ public class RequisitionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
+    public async Task<IActionResult> CancelApproval(int id, CancellationToken cancellationToken)
+    {
+        await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
+        {
+            var requisition = await _db.RequisitionRecords
+                .Include(r => r.Items)
+                .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+            if (requisition is null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return NotFound();
+            }
+
+            if (!RequisitionApproverScope.CanApproveItemType(User, requisition.ItemType))
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return Forbid();
+            }
+
+            if (requisition.Status != RequisitionStatus.Approved)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "Only approved requisitions can have approval canceled.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (requisition.MarkedInUseAt is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "Approval cannot be canceled after checker issuance.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var restoreError = await RequisitionInventoryStock.RestoreFulfilledApprovalAsync(
+                _db, requisition, cancellationToken);
+            if (restoreError is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = restoreError;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            requisition.Status = RequisitionStatus.Pending;
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        }
+
+        TempData["StatusMessage"] = "Approval canceled; requisition returned to pending.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = SmrsPolicies.RequisitionChecker)]
     public async Task<IActionResult> MarkInUse(int id, string? returnAction, CancellationToken cancellationToken)
     {
-        var requisition = await _db.RequisitionRecords.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
-        if (requisition is null)
-            return NotFound();
-
-        if (requisition.Status != RequisitionStatus.Approved)
+        await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
         {
-            TempData["ErrorMessage"] = "Only approved requisitions can be recorded as issued.";
-            return RedirectToAction(nameof(Details), new { id, returnAction });
+            var requisition = await _db.RequisitionRecords
+                .Include(r => r.Items)
+                .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+            if (requisition is null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return NotFound();
+            }
+
+            if (requisition.Status != RequisitionStatus.Approved)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "Only approved requisitions can be recorded as issued.";
+                return RedirectToAction(nameof(Details), new { id, returnAction });
+            }
+
+            if (requisition.MarkedInUseAt is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = "This requisition is already recorded as in use.";
+                return RedirectToAction(nameof(Details), new { id, returnAction });
+            }
+
+            var issueError = await RequisitionInventoryStock.FulfillApprovedAsync(_db, requisition, cancellationToken);
+            if (issueError is not null)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                TempData["ErrorMessage"] = issueError;
+                return RedirectToAction(nameof(Details), new { id, returnAction });
+            }
+
+            requisition.MarkedInUseAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
         }
 
-        if (requisition.MarkedInUseAt is not null)
-        {
-            TempData["ErrorMessage"] = "This requisition is already recorded as in use.";
-            return RedirectToAction(nameof(Details), new { id, returnAction });
-        }
-
-        requisition.MarkedInUseAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(cancellationToken);
         TempData["StatusMessage"] = "Issuance recorded; items are in use with the requestor.";
 
         if (string.Equals(returnAction, nameof(Issuance), StringComparison.OrdinalIgnoreCase))
@@ -605,9 +668,18 @@ public class RequisitionsController : Controller
     [HttpGet]
     public async Task<IActionResult> InventoryItemSerials(int id, CancellationToken cancellationToken)
     {
+        var unavailableSerials = _db.RequisitionRecordItems
+            .AsNoTracking()
+            .Where(i => i.InventoryItemId == id
+                && i.SerialNo != null
+                && i.RequisitionRecord != null
+                && (i.RequisitionRecord.Status == RequisitionStatus.Pending
+                    || i.RequisitionRecord.Status == RequisitionStatus.Approved))
+            .Select(i => i.SerialNo!);
+
         var serials = await _db.InventoryItemSerials
             .AsNoTracking()
-            .Where(s => s.InventoryItemId == id)
+            .Where(s => s.InventoryItemId == id && !unavailableSerials.Contains(s.SerialNumber))
             .OrderBy(s => s.SerialNumber)
             .Select(s => s.SerialNumber)
             .ToListAsync(cancellationToken);

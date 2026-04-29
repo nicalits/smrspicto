@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PICTO.SMRS.Web.Data;
 using PICTO.SMRS.Web.Models.Inventory;
 using PICTO.SMRS.Web.Security;
+using PICTO.SMRS.Web.Services;
 
 namespace PICTO.SMRS.Web.Controllers;
 
@@ -34,9 +35,15 @@ public class InventoryController : Controller
         query = ApplySearchFilter(query, q, column);
         var sortBy = NormalizeSortBy(sort);
         var sortDir = NormalizeSortDirection(dir);
-        query = ApplySort(query, sortBy, sortDir);
         var list = await query.ToListAsync(cancellationToken);
-        var rows = list.Select(MapToRow).ToList();
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
+            _db,
+            list.Select(i => i.Id).ToList(),
+            cancellationToken);
+        var rows = ApplySort(
+            list.Select(i => MapToRow(i, unavailableByItemId.GetValueOrDefault(i.Id))),
+            sortBy,
+            sortDir).ToList();
 
         return View(new InventoryIndexViewModel
         {
@@ -111,7 +118,6 @@ public class InventoryController : Controller
             Unit = model.Unit,
             Quantity = model.Quantity,
             UnitPrice = model.UnitPrice,
-            ReservedQuantity = 0,
             LowStockLevel = model.LowStockLevel,
             Location = string.IsNullOrWhiteSpace(model.Location) ? null : model.Location.Trim(),
             Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
@@ -284,9 +290,9 @@ public class InventoryController : Controller
         return $"{d} · {s}";
     }
 
-    private static InventoryListRowViewModel MapToRow(InventoryItem i)
+    private static InventoryListRowViewModel MapToRow(InventoryItem i, int unavailableQuantity)
     {
-        var available = Math.Max(0, i.Quantity - i.ReservedQuantity);
+        var available = Math.Max(0, i.Quantity - unavailableQuantity);
         var low = i.LowStockLevel > 0 && available <= i.LowStockLevel;
         return new InventoryListRowViewModel
         {
@@ -298,7 +304,6 @@ public class InventoryController : Controller
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             TotalAmount = i.UnitPrice * i.Quantity,
-            ReservedQuantity = i.ReservedQuantity,
             AvailableQuantity = available,
             LowStockLevel = i.LowStockLevel,
             Location = i.Location,
@@ -406,7 +411,7 @@ public class InventoryController : Controller
         var s = (sort ?? "item").Trim().ToLowerInvariant();
         return s switch
         {
-            "item" or "brand" or "group" or "unit" or "qty" or "price" or "total" or "reserved" or "available" or "lowstock" or "location" or "description" or "serialized" => s,
+            "item" or "brand" or "group" or "unit" or "qty" or "price" or "total" or "available" or "lowstock" or "location" or "description" or "serialized" => s,
             _ => "item"
         };
     }
@@ -414,7 +419,10 @@ public class InventoryController : Controller
     private static string NormalizeSortDirection(string? dir)
         => string.Equals(dir?.Trim(), "desc", StringComparison.OrdinalIgnoreCase) ? "desc" : "asc";
 
-    private static IQueryable<InventoryItem> ApplySort(IQueryable<InventoryItem> query, string sortBy, string sortDir)
+    private static IEnumerable<InventoryListRowViewModel> ApplySort(
+        IEnumerable<InventoryListRowViewModel> query,
+        string sortBy,
+        string sortDir)
     {
         var desc = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
         return (sortBy, desc) switch
@@ -423,20 +431,18 @@ public class InventoryController : Controller
             ("item", true) => query.OrderByDescending(i => i.ItemName).ThenByDescending(i => i.Id),
             ("brand", false) => query.OrderBy(i => i.Brand).ThenBy(i => i.ItemName),
             ("brand", true) => query.OrderByDescending(i => i.Brand).ThenByDescending(i => i.ItemName),
-            ("group", false) => query.OrderBy(i => i.SupplyGroup).ThenBy(i => i.ItemName),
-            ("group", true) => query.OrderByDescending(i => i.SupplyGroup).ThenByDescending(i => i.ItemName),
-            ("unit", false) => query.OrderBy(i => i.Unit).ThenBy(i => i.ItemName),
-            ("unit", true) => query.OrderByDescending(i => i.Unit).ThenByDescending(i => i.ItemName),
+            ("group", false) => query.OrderBy(i => i.SupplyGroupDisplay).ThenBy(i => i.ItemName),
+            ("group", true) => query.OrderByDescending(i => i.SupplyGroupDisplay).ThenByDescending(i => i.ItemName),
+            ("unit", false) => query.OrderBy(i => i.UnitDisplay).ThenBy(i => i.ItemName),
+            ("unit", true) => query.OrderByDescending(i => i.UnitDisplay).ThenByDescending(i => i.ItemName),
             ("qty", false) => query.OrderBy(i => i.Quantity).ThenBy(i => i.ItemName),
             ("qty", true) => query.OrderByDescending(i => i.Quantity).ThenByDescending(i => i.ItemName),
             ("price", false) => query.OrderBy(i => i.UnitPrice).ThenBy(i => i.ItemName),
             ("price", true) => query.OrderByDescending(i => i.UnitPrice).ThenByDescending(i => i.ItemName),
-            ("total", false) => query.OrderBy(i => (i.UnitPrice * i.Quantity)).ThenBy(i => i.ItemName),
-            ("total", true) => query.OrderByDescending(i => (i.UnitPrice * i.Quantity)).ThenByDescending(i => i.ItemName),
-            ("reserved", false) => query.OrderBy(i => i.ReservedQuantity).ThenBy(i => i.ItemName),
-            ("reserved", true) => query.OrderByDescending(i => i.ReservedQuantity).ThenByDescending(i => i.ItemName),
-            ("available", false) => query.OrderBy(i => (i.Quantity - i.ReservedQuantity)).ThenBy(i => i.ItemName),
-            ("available", true) => query.OrderByDescending(i => (i.Quantity - i.ReservedQuantity)).ThenByDescending(i => i.ItemName),
+            ("total", false) => query.OrderBy(i => i.TotalAmount).ThenBy(i => i.ItemName),
+            ("total", true) => query.OrderByDescending(i => i.TotalAmount).ThenByDescending(i => i.ItemName),
+            ("available", false) => query.OrderBy(i => i.AvailableQuantity).ThenBy(i => i.ItemName),
+            ("available", true) => query.OrderByDescending(i => i.AvailableQuantity).ThenByDescending(i => i.ItemName),
             ("lowstock", false) => query.OrderBy(i => i.LowStockLevel).ThenBy(i => i.ItemName),
             ("lowstock", true) => query.OrderByDescending(i => i.LowStockLevel).ThenByDescending(i => i.ItemName),
             ("location", false) => query.OrderBy(i => i.Location).ThenBy(i => i.ItemName),

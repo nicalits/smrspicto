@@ -384,9 +384,6 @@ namespace PICTO.SMRS.Web.Data.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<int>("ReservedQuantity")
-                        .HasColumnType("int");
-
                     b.Property<string>("Specifications")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");

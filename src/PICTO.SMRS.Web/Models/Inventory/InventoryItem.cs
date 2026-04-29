@@ -16,8 +16,6 @@ public class InventoryItem
 
     public decimal UnitPrice { get; set; }
 
-    public int ReservedQuantity { get; set; }
-
     public int LowStockLevel { get; set; }
 
     public string? Location { get; set; }

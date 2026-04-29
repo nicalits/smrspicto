@@ -40,6 +40,10 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    options.AddPolicy(SmrsPolicies.OverviewAccess, policy =>
+        policy.RequireAssertion(ctx =>
+            ctx.User.Identity?.IsAuthenticated == true
+            && !ctx.User.IsInRole(SmrsRoles.Employee)));
     options.AddPolicy(SmrsPolicies.UserManagement, policy =>
         policy.RequireRole(
             SmrsRoles.DepartmentHead));

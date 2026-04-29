@@ -600,12 +600,20 @@ body.smrs-app-body {
   --smrs-table-cell-x: 0.75rem;
   --smrs-table-cell-y: 0.65rem;
   font-size: 0.82rem;
+  min-width: 1180px;
 }
 
 .smrs-table--inventory thead th {
   white-space: normal;
   line-height: 1.2;
   font-size: 0.64rem;
+}
+
+.smrs-table--inventory thead a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .smrs-table--inventory .btn {
@@ -622,6 +630,10 @@ body.smrs-app-body {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+}
+
+.smrs-report-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .smrs-dashboard-groups {
@@ -643,8 +655,24 @@ body.smrs-app-body {
   border: 1px solid rgba(26, 58, 92, 0.12);
   border-radius: 0.7rem;
   box-shadow: 0 0.15rem 0.55rem rgba(26, 58, 92, 0.05);
-  padding: 0.8rem 1rem;
-  min-height: 5.2rem;
+  padding: 0.75rem 0.9rem;
+  min-height: 4.8rem;
+}
+
+.smrs-dashboard-kpi--link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.smrs-dashboard-kpi--link:hover,
+.smrs-dashboard-kpi--link:focus-visible {
+  border-color: rgba(26, 58, 92, 0.28);
+  box-shadow: 0 0.35rem 0.85rem rgba(26, 58, 92, 0.12);
+  color: inherit;
+  text-decoration: none;
+  transform: translateY(-1px);
 }
 
 .smrs-dashboard-kpi__label {
@@ -659,7 +687,7 @@ body.smrs-app-body {
 
 .smrs-dashboard-kpi__value {
   color: var(--smrs-navy);
-  font-size: clamp(1.55rem, 2.7vw, 2rem);
+  font-size: clamp(1.35rem, 2.25vw, 1.85rem);
   line-height: 1;
   font-weight: 700;
 }
@@ -668,4 +696,86 @@ body.smrs-app-body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.smrs-report-chart-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-height: 13rem;
+}
+
+.smrs-report-chart {
+  display: block;
+  width: 100%;
+  min-height: 13rem;
+}
+
+.smrs-report-chart--pie {
+  flex: 0 1 16rem;
+  max-width: 18rem;
+}
+
+.smrs-report-chart--bar {
+  height: 14rem;
+}
+
+.smrs-chart-legend {
+  display: grid;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+}
+
+.smrs-chart-legend__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  color: #43505c;
+}
+
+.smrs-chart-legend__swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+}
+
+.smrs-chart-legend__swatch--it {
+  background: var(--smrs-blue);
+}
+
+.smrs-chart-legend__swatch--office {
+  background: var(--smrs-gold);
+}
+
+.smrs-chart-empty {
+  display: grid;
+  place-items: center;
+  min-height: 13rem;
+  padding: 1.25rem;
+  border: 1px dashed rgba(26, 58, 92, 0.22);
+  border-radius: 0.7rem;
+  background: rgba(234, 241, 248, 0.45);
+  color: #5c6772;
+  text-align: center;
+}
+
+@media (max-width: 575.98px) {
+  .smrs-report-chart-wrap {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .smrs-report-chart--pie {
+    align-self: center;
+  }
+
+  .smrs-chart-legend__item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .smrs-chart-legend__item strong {
+    grid-column: 2;
+    text-align: left;
+  }
 }

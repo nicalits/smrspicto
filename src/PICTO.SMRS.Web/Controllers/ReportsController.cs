@@ -2,12 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PICTO.SMRS.Web.Data;
+using PICTO.SMRS.Web.Models.Borrow;
 using PICTO.SMRS.Web.Models.Reports;
 using PICTO.SMRS.Web.Models.Requisitions;
+using PICTO.SMRS.Web.Security;
 
 namespace PICTO.SMRS.Web.Controllers;
 
-[Authorize]
+[Authorize(Policy = SmrsPolicies.OverviewAccess)]
 public sealed class ReportsController(ApplicationDbContext db) : Controller
 {
     [HttpGet]
@@ -22,16 +24,30 @@ public sealed class ReportsController(ApplicationDbContext db) : Controller
 
         var inventory = db.InventoryItems.AsNoTracking();
         var requisitions = db.RequisitionRecords.AsNoTracking();
+        var borrowRecords = db.BorrowRecords.AsNoTracking();
 
         var items = await inventory.CountAsync();
         var itemUnits = await inventory.SumAsync(i => (int?)i.Quantity) ?? 0;
-        var reservedUnits = await inventory.SumAsync(i => (int?)i.ReservedQuantity) ?? 0;
-        var availableUnits = Math.Max(0, itemUnits - reservedUnits);
+        var availableUnits = Math.Max(0, itemUnits);
         var inventoryValue = await inventory.SumAsync(i => (decimal?)(i.UnitPrice * i.Quantity)) ?? 0m;
 
         var pendingReqs = await requisitions.CountAsync(r => r.Status == RequisitionStatus.Pending);
         var reqsInRange = await requisitions.CountAsync(r => r.Date >= start && r.Date <= end);
-        var inUse = await requisitions.CountAsync(r => r.Status == RequisitionStatus.Approved && r.MarkedInUseAt != null);
+        var itReqsInRange = await requisitions.CountAsync(r =>
+            r.Date >= start && r.Date <= end && r.ItemType == RequisitionItemType.ItSupplies);
+        var officeReqsInRange = await requisitions.CountAsync(r =>
+            r.Date >= start && r.Date <= end && r.ItemType == RequisitionItemType.OfficeSupplies);
+        var borrowReqsInRange = await borrowRecords.CountAsync(r => r.SlipDate >= start && r.SlipDate <= end);
+        var inUse = await db.RequisitionRecordItems
+            .AsNoTracking()
+            .Where(i => i.RequisitionRecord != null
+                && i.RequisitionRecord.Status == RequisitionStatus.Approved
+                && i.RequisitionRecord.MarkedInUseAt != null)
+            .SumAsync(i => (int?)i.Qty) ?? 0;
+        var unitsOutForBorrowing = await db.BorrowRecordItems
+            .AsNoTracking()
+            .Where(i => i.BorrowRecord != null && i.BorrowRecord.Status == BorrowStatus.Approved)
+            .SumAsync(i => (int?)i.Qty) ?? 0;
         var costInRange = await db.RequisitionRecordItems
             .AsNoTracking()
             .Where(i => i.RequisitionRecord != null
@@ -65,8 +81,12 @@ public sealed class ReportsController(ApplicationDbContext db) : Controller
             ItemUnits = itemUnits,
             AvailableUnits = availableUnits,
             InUseUnits = inUse,
+            UnitsOutForBorrowing = unitsOutForBorrowing,
             PendingRequisitions = pendingReqs,
             RequisitionsInRange = reqsInRange,
+            ItRequestsInRange = itReqsInRange,
+            OfficeRequestsInRange = officeReqsInRange,
+            BorrowRequestsInRange = borrowReqsInRange,
             InventoryValue = inventoryValue,
             CostInRange = costInRange,
             CostInCurrentYear = costInCurrentYear

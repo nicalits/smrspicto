@@ -10,7 +10,6 @@ public class InventoryListRowViewModel
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal TotalAmount { get; set; }
-    public int ReservedQuantity { get; set; }
     public int AvailableQuantity { get; set; }
     public int LowStockLevel { get; set; }
     public string? Location { get; set; }
