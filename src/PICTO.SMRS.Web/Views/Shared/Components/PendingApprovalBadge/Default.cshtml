@@ -1,5 +1,21 @@
-@model int
-@if (Model > 0)
+@model PICTO.SMRS.Web.ViewComponents.PendingApprovalBadgeViewModel
+@if (Model.TotalCount > 0)
 {
-    <span class="badge rounded-pill bg-danger smrs-sidenav-approval-badge" title="@Model pending requisition(s) in your approval queue">@Model</span>
+    if (Model.ShowSplitCounts)
+    {
+        <span class="smrs-sidenav-approval-badges" title="@Model.TotalCount pending requisition(s) in your approval queue">
+            @if (Model.ItCount > 0)
+            {
+                <span class="badge rounded-pill bg-danger smrs-sidenav-approval-badge">IT @Model.ItCount</span>
+            }
+            @if (Model.OfficeCount > 0)
+            {
+                <span class="badge rounded-pill bg-warning text-dark smrs-sidenav-approval-badge">Office @Model.OfficeCount</span>
+            }
+        </span>
+    }
+    else
+    {
+        <span class="badge rounded-pill bg-danger smrs-sidenav-approval-badge" title="@Model.TotalCount pending requisition(s) in your approval queue">@Model.TotalCount</span>
+    }
 }

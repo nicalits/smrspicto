@@ -152,14 +152,14 @@ public class InventoryController : Controller
         var vm = new AddInventoryItemViewModel
         {
             ItemName = entity.ItemName,
-            Brand = entity.Brand,
+            Brand = entity.Brand ?? string.Empty,
             SupplyGroup = entity.SupplyGroup,
             Unit = entity.Unit,
             Quantity = entity.Quantity,
             UnitPrice = entity.UnitPrice,
             LowStockLevel = entity.LowStockLevel,
-            Location = entity.Location,
-            Description = entity.Description,
+            Location = entity.Location ?? string.Empty,
+            Description = entity.Description ?? string.Empty,
             IsSerialized = entity.IsSerialized,
             SerialNumbersRaw = entity.IsSerialized
                 ? string.Join(Environment.NewLine, entity.Serials.Select(s => s.SerialNumber).OrderBy(x => x))

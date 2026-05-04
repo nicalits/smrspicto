@@ -19,10 +19,24 @@
             <div class="smrs-dashboard-kpis">
                 @if (Model.ShowPendingApprovals)
                 {
-                    <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
-                        <span class="smrs-dashboard-kpi__label">@Model.PendingApprovalsLabel</span>
-                        <strong class="smrs-dashboard-kpi__value">@Model.PendingApprovals</strong>
-                    </a>
+                    if (Model.ShowSplitPendingApprovals)
+                    {
+                        <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                            <span class="smrs-dashboard-kpi__label">Pending IT Approvals</span>
+                            <strong class="smrs-dashboard-kpi__value">@Model.PendingItApprovals</strong>
+                        </a>
+                        <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                            <span class="smrs-dashboard-kpi__label">Pending Office Approvals</span>
+                            <strong class="smrs-dashboard-kpi__value">@Model.PendingOfficeApprovals</strong>
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Requisitions" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                            <span class="smrs-dashboard-kpi__label">@Model.PendingApprovalsLabel</span>
+                            <strong class="smrs-dashboard-kpi__value">@Model.PendingApprovals</strong>
+                        </a>
+                    }
                 }
                 @if (Model.ShowRequisitionCheckingQueues)
                 {
@@ -35,12 +49,15 @@
                         <strong class="smrs-dashboard-kpi__value">@Model.PendingIssuance</strong>
                     </a>
                 }
-                @if (Model.ShowBorrowDashboardInfo)
+                @if (Model.ShowPendingBorrowRequests)
                 {
                     <a asp-controller="Borrow" asp-action="Index" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                         <span class="smrs-dashboard-kpi__label">Pending Borrow Request</span>
                         <strong class="smrs-dashboard-kpi__value">@Model.PendingBorrowRequests</strong>
                     </a>
+                }
+                @if (Model.ShowBorrowDashboardInfo)
+                {
                     <a asp-controller="Borrow" asp-action="Approvals" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                         <span class="smrs-dashboard-kpi__label">Pending Borrow Approval</span>
                         <strong class="smrs-dashboard-kpi__value">@Model.PendingBorrowApprovals</strong>

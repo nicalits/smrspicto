@@ -25,8 +25,10 @@ public class HomeController(ApplicationDbContext db) : Controller
         var isOfficeDivisionHead = User.IsInRole(SmrsRoles.OfficeDivisionHead);
         var isDivisionHeadOnly = !isDepartmentHead && (isItDivisionHead || isOfficeDivisionHead);
         var showPendingApprovals = !isEncoder && (isDepartmentHead || isItDivisionHead || isOfficeDivisionHead);
+        var showSplitPendingApprovals = showPendingApprovals && isDepartmentHead;
         var showRequisitionCheckingQueues = isEncoder || isDepartmentHead;
         var showBorrowDashboardInfo = !isDivisionHeadOnly;
+        var showPendingBorrowRequests = showBorrowDashboardInfo && !isEncoder;
         var requisitions = db.RequisitionRecords.AsNoTracking();
         var pendingApprovalRequisitions = requisitions
             .ApplyApproverQueueFilter(User)
@@ -71,11 +73,19 @@ public class HomeController(ApplicationDbContext db) : Controller
         var model = new HomeDashboardViewModel
         {
             ShowPendingApprovals = showPendingApprovals,
+            ShowSplitPendingApprovals = showSplitPendingApprovals,
             PendingApprovalsLabel = GetPendingApprovalsLabel(),
             ShowRequisitionCheckingQueues = showRequisitionCheckingQueues,
             ShowBorrowDashboardInfo = showBorrowDashboardInfo,
+            ShowPendingBorrowRequests = showPendingBorrowRequests,
             PendingApprovals = showPendingApprovals
                 ? await pendingApprovalRequisitions.CountAsync()
+                : 0,
+            PendingItApprovals = showSplitPendingApprovals
+                ? await pendingApprovalRequisitions.CountAsync(r => r.ItemType == RequisitionItemType.ItSupplies)
+                : 0,
+            PendingOfficeApprovals = showSplitPendingApprovals
+                ? await pendingApprovalRequisitions.CountAsync(r => r.ItemType == RequisitionItemType.OfficeSupplies)
                 : 0,
             PendingCheckingQueue = showRequisitionCheckingQueues
                 ? await requisitions.CountAsync(r =>
@@ -85,7 +95,7 @@ public class HomeController(ApplicationDbContext db) : Controller
                 ? await requisitions.CountAsync(r =>
                     r.Status == RequisitionStatus.Approved && r.MarkedInUseAt == null)
                 : 0,
-            PendingBorrowRequests = !showBorrowDashboardInfo || string.IsNullOrWhiteSpace(currentUserId)
+            PendingBorrowRequests = !showPendingBorrowRequests || string.IsNullOrWhiteSpace(currentUserId)
                 ? 0
                 : await db.BorrowRecords.CountAsync(r =>
                     r.BorrowerUserId == currentUserId && r.Status == BorrowStatus.Pending),

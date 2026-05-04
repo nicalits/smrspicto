@@ -84,6 +84,24 @@ using (var scope = app.Services.CreateScope())
         END
         """);
     await db.Database.MigrateAsync();
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('InventoryItems', 'ReservedQuantity') IS NOT NULL
+        BEGIN
+            DECLARE @constraintName sysname;
+
+            SELECT @constraintName = dc.name
+            FROM sys.default_constraints dc
+            INNER JOIN sys.columns c ON c.default_object_id = dc.object_id
+            INNER JOIN sys.tables t ON t.object_id = c.object_id
+            WHERE t.name = 'InventoryItems'
+                AND c.name = 'ReservedQuantity';
+
+            IF @constraintName IS NOT NULL
+                EXEC('ALTER TABLE [InventoryItems] DROP CONSTRAINT [' + @constraintName + ']');
+
+            ALTER TABLE [InventoryItems] DROP COLUMN [ReservedQuantity];
+        END
+        """);
 }
 
 await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger);

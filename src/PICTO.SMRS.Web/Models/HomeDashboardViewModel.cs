@@ -4,15 +4,23 @@ public sealed class HomeDashboardViewModel
 {
     public bool ShowPendingApprovals { get; init; }
 
+    public bool ShowSplitPendingApprovals { get; init; }
+
     public string PendingApprovalsLabel { get; init; } = "Pending Approvals";
 
     public bool ShowRequisitionCheckingQueues { get; init; }
 
     public bool ShowBorrowDashboardInfo { get; init; }
 
+    public bool ShowPendingBorrowRequests { get; init; }
+
     public int PendingCheckingQueue { get; init; }
 
     public int PendingApprovals { get; init; }
+
+    public int PendingItApprovals { get; init; }
+
+    public int PendingOfficeApprovals { get; init; }
 
     public int PendingIssuance { get; init; }
 

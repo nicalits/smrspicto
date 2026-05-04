@@ -10,8 +10,9 @@ public class AddInventoryItemViewModel
     [Display(Name = "Item name")]
     public string ItemName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Brand is required.")]
     [StringLength(128)]
-    public string? Brand { get; set; }
+    public string Brand { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Supply group is required.")]
     [Display(Name = "Supply group")]
@@ -33,12 +34,14 @@ public class AddInventoryItemViewModel
     [Display(Name = "Low stock level")]
     public int LowStockLevel { get; set; }
 
+    [Required(ErrorMessage = "Location is required.")]
     [StringLength(256)]
-    public string? Location { get; set; }
+    public string Location { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Description is required.")]
     [StringLength(1_000_000)]
     [Display(Name = "Description & specifications")]
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     [Display(Name = "Serialized item (track serial numbers)")]
     public bool IsSerialized { get; set; }

@@ -108,7 +108,16 @@
                                     <td class="text-center smrs-inventory-td--thumb">
                                         @if (!string.IsNullOrEmpty(row.ImagePath))
                                         {
-                                            <img class="smrs-inventory-thumb" src="~/@row.ImagePath" alt="" />
+                                            var imageUrl = Url.Content($"~/{row.ImagePath}");
+                                            <button type="button"
+                                                    class="smrs-inventory-thumb-button"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#inventoryImageModal"
+                                                    data-image-src="@imageUrl"
+                                                    data-image-title="@row.ItemName"
+                                                    aria-label="View larger photo for @row.ItemName">
+                                                <img class="smrs-inventory-thumb" src="@imageUrl" alt="" />
+                                            </button>
                                         }
                                         else
                                         {
@@ -145,3 +154,45 @@
         </section>
     </div>
 </div>
+
+<div class="modal fade" id="inventoryImageModal" tabindex="-1" aria-labelledby="inventoryImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0">
+                <h2 class="modal-title h5 text-navy" id="inventoryImageModalLabel">Inventory photo</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-0 text-center">
+                <img id="inventoryImagePreview" class="img-fluid rounded border" src="" alt="" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var modal = document.getElementById('inventoryImageModal');
+            var preview = document.getElementById('inventoryImagePreview');
+            var title = document.getElementById('inventoryImageModalLabel');
+            if (!modal || !preview || !title) return;
+
+            modal.addEventListener('show.bs.modal', function (event) {
+                var trigger = event.relatedTarget;
+                if (!trigger) return;
+
+                var imageSrc = trigger.getAttribute('data-image-src') || '';
+                var imageTitle = trigger.getAttribute('data-image-title') || 'Inventory photo';
+                preview.src = imageSrc;
+                preview.alt = imageTitle;
+                title.textContent = imageTitle;
+            });
+
+            modal.addEventListener('hidden.bs.modal', function () {
+                preview.removeAttribute('src');
+                preview.alt = '';
+                title.textContent = 'Inventory photo';
+            });
+        })();
+    </script>
+}

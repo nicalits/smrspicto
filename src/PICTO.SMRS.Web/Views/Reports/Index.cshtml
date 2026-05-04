@@ -9,9 +9,10 @@
     var officeRequestPercent = supplyRequestTotal == 0 ? 0 : 100 - itRequestPercent;
 
     var maxRequestCount = Math.Max(Model.RequisitionsInRange, Model.BorrowRequestsInRange);
+    var rangeLabel = $"{Model.StartDate:yyyy-MM-dd} to {Model.EndDate:yyyy-MM-dd}";
 }
 
-<div class="smrs-page smrs-page--wide">
+<div class="smrs-page smrs-page--wide smrs-reports">
     <div class="smrs-card smrs-card--page">
         <header class="smrs-page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
             <div>
@@ -21,7 +22,7 @@
         </header>
 
         <section class="smrs-section mt-4">
-            <form method="get" class="row g-3 align-items-end">
+            <form method="get" class="row g-3 align-items-end smrs-report-filter">
                 <div class="col-12 col-md-4 col-lg-3">
                     <label class="form-label small text-muted text-uppercase tracking-wide" for="repStart">Start Date</label>
                     <input id="repStart" name="startDate" type="date" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
@@ -38,34 +39,35 @@
 
         <section class="smrs-section mt-4">
             <div class="smrs-dashboard-kpis smrs-report-kpis">
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Units In Use</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.InUseUnits</strong>
-                    <div class="small text-muted mt-1">Issued requisition units</div>
+                    <div class="smrs-report-kpi__note">Issued requisition units</div>
                 </article>
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Units Out For Borrowing</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.UnitsOutForBorrowing</strong>
-                    <div class="small text-muted mt-1">Approved borrowed units</div>
+                    <div class="smrs-report-kpi__note">Approved borrowed units</div>
                 </article>
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Pending Requisitions</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.PendingRequisitions</strong>
-                    <div class="small text-muted mt-1">Waiting for approval</div>
+                    <div class="smrs-report-kpi__note">Waiting for approval</div>
                 </article>
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Requisitions (Range)</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.RequisitionsInRange</strong>
-                    <div class="small text-muted mt-1">@Model.StartDate.ToString("yyyy-MM-dd") to @Model.EndDate.ToString("yyyy-MM-dd")</div>
+                    <div class="smrs-report-kpi__note">@rangeLabel</div>
                 </article>
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Inventory Value</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.InventoryValue.ToPeso()</strong>
+                    <div class="smrs-report-kpi__note">All inventory items</div>
                 </article>
-                <article class="smrs-dashboard-kpi">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Cost (Range)</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.CostInRange.ToPeso()</strong>
-                    <div class="small text-muted mt-1">Approved requisitions only</div>
+                    <div class="smrs-report-kpi__note">Approved requisitions only</div>
                 </article>
             </div>
         </section>
