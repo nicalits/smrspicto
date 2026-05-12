@@ -1,32 +1,25 @@
 @using PICTO.SMRS.Web.Models.Requisitions
-@using PICTO.SMRS.Web.Services
 @model IReadOnlyList<RequisitionApprovalRowViewModel>
 @{
-    ViewData["Title"] = "Requisition Approvals";
-    var canApprove = (bool?)ViewData["CanApprove"] == true;
-    var queuePositions = ViewData["QueuePositions"] as Dictionary<int, int> ?? new Dictionary<int, int>();
+    ViewData["Title"] = "Rejected Requisitions";
 }
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
         <header class="smrs-page-header">
-            <h1 class="h3 text-navy mb-1">Requisition Approvals</h1>
-            <p class="text-muted small mb-0">Queued and on-hold requisitions awaiting action.</p>
+            <h1 class="h3 text-navy mb-1">Rejected Requisitions</h1>
+            <p class="text-muted small mb-0">All requisitions that have been rejected.</p>
         </header>
 
         @if (TempData["StatusMessage"] is string ok)
         {
             <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
         }
-        @if (TempData["ErrorMessage"] is string err)
-        {
-            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
-        }
 
         <section class="smrs-section mt-4">
             @if (Model.Count == 0)
             {
-                <div class="alert alert-secondary mb-0">No requisitions awaiting action.</div>
+                <div class="alert alert-secondary mb-0">No rejected requisitions.</div>
             }
             else
             {
@@ -34,36 +27,34 @@
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>RS No.</th>
                                 <th>Date</th>
                                 <th>Requestor</th>
                                 <th>Division</th>
                                 <th>Type</th>
                                 <th>Items</th>
-                                <th>Status</th>
+                                <th>Reason</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var row in Model)
                             {
-                                var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
-                                var badgeClass = row.Status switch
-                                {
-                                    RequisitionStatus.InQueue => "text-bg-info",
-                                    RequisitionStatus.Pending => "text-bg-warning text-dark",
-                                    _ => "text-bg-light text-dark border"
-                                };
                                 <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(row.RsNo) ? "—" : row.RsNo)</td>
                                     <td>@row.Date.ToString("yyyy-MM-dd")</td>
                                     <td>@row.RequestorName</td>
                                     <td>@row.RequestorDivision</td>
                                     <td>@(row.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</td>
                                     <td>@row.ItemCount</td>
                                     <td>
-                                        <span class="badge @badgeClass">@statusDisplay</span>
-                                        @if (row.Status == RequisitionStatus.Pending && !string.IsNullOrWhiteSpace(row.PendingReason))
+                                        @if (!string.IsNullOrWhiteSpace(row.RejectionReason))
                                         {
-                                            <span class="d-block small text-muted mt-1" title="@row.PendingReason">@row.PendingReason</span>
+                                            <span class="text-danger small">@row.RejectionReason</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
                                         }
                                     </td>
                                     <td class="text-end">

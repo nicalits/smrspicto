@@ -74,9 +74,9 @@ public class BorrowController : Controller
             || !string.Equals(borrow.BorrowerUserId, currentUserId, StringComparison.Ordinal))
             return Forbid();
 
-        if (borrow.Status != BorrowStatus.Pending)
+        if (borrow.Status != BorrowStatus.InQueue)
         {
-            TempData["ErrorMessage"] = "Only pending borrow requests can be edited.";
+            TempData["ErrorMessage"] = "Only queued borrow requests can be edited.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -143,6 +143,13 @@ public class BorrowController : Controller
         if (!ModelState.IsValid)
             return View(model);
 
+        var stockError = await BorrowInventoryStock.ValidateNewBorrowStockAsync(_db, model.Items, cancellationToken);
+        if (stockError is not null)
+        {
+            ModelState.AddModelError(string.Empty, stockError);
+            return View(model);
+        }
+
         var borrow = new BorrowRecord
         {
             RfNo = model.RfNo,
@@ -154,7 +161,7 @@ public class BorrowController : Controller
             SlipTime = model.SlipTime,
             TelNo = model.TelNo,
             Remarks = model.Remarks,
-            Status = BorrowStatus.Pending,
+            Status = BorrowStatus.InQueue,
             CreatedAt = DateTimeOffset.UtcNow,
             Items = model.Items.Select(i => new BorrowRecordItem
             {
@@ -192,9 +199,9 @@ public class BorrowController : Controller
             || !string.Equals(borrow.BorrowerUserId, currentUserId, StringComparison.Ordinal))
             return Forbid();
 
-        if (borrow.Status != BorrowStatus.Pending)
+        if (borrow.Status != BorrowStatus.InQueue)
         {
-            TempData["ErrorMessage"] = "Only pending borrow requests can be edited.";
+            TempData["ErrorMessage"] = "Only queued borrow requests can be edited.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -225,6 +232,17 @@ public class BorrowController : Controller
 
         if (!ModelState.IsValid)
         {
+            ViewData["FormAction"] = nameof(Edit);
+            ViewData["EditId"] = id;
+            ViewData["SubmitLabel"] = "Save changes";
+            ViewData["PageHeading"] = "Edit borrower's slip";
+            return View(nameof(Create), model);
+        }
+
+        var stockError = await BorrowInventoryStock.ValidateNewBorrowStockAsync(_db, model.Items, cancellationToken);
+        if (stockError is not null)
+        {
+            ModelState.AddModelError(string.Empty, stockError);
             ViewData["FormAction"] = nameof(Edit);
             ViewData["EditId"] = id;
             ViewData["SubmitLabel"] = "Save changes";
@@ -268,7 +286,8 @@ public class BorrowController : Controller
         var rows = await _db.BorrowRecords
             .AsNoTracking()
             .Include(r => r.Items)
-            .OrderBy(r => r.Status == BorrowStatus.Pending ? 0 : 1)
+            .Where(r => r.Status == BorrowStatus.InQueue || r.Status == BorrowStatus.Pending)
+            .OrderBy(r => r.Status == BorrowStatus.InQueue ? 0 : 1)
             .ThenBy(r => r.CreatedAt)
             .Select(r => new BorrowApprovalRowViewModel
             {
@@ -279,9 +298,13 @@ public class BorrowController : Controller
                 SlipDate = r.SlipDate,
                 ItemCount = r.Items.Count,
                 Status = r.Status,
+                PendingReason = r.PendingReason,
                 IssuedAt = r.IssuedAt
             })
             .ToListAsync(cancellationToken);
+
+        var queuePositions = await QueuePositionHelper.GetBorrowQueuePositionsAsync(_db, cancellationToken);
+        ViewData["QueuePositions"] = queuePositions;
 
         return View(rows);
     }
@@ -300,14 +323,20 @@ public class BorrowController : Controller
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var isRequestOwner = !string.IsNullOrWhiteSpace(currentUserId)
             && string.Equals(borrow.BorrowerUserId, currentUserId, StringComparison.Ordinal);
-        var canApprove = User.IsInRole(SmrsRoles.Encoder) || User.IsInRole(SmrsRoles.DepartmentHead);
+        var canView = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder)
+            || User.IsInRole(SmrsRoles.DepartmentHead);
+        var canAct = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder);
 
-        if (!isRequestOwner && !canApprove)
+        if (!isRequestOwner && !canView)
             return Forbid();
 
-        ViewData["CanTakeAction"] = canApprove && borrow.Status == BorrowStatus.Pending;
-        ViewData["CanEdit"] = isRequestOwner && borrow.Status == BorrowStatus.Pending;
-        ViewData["BackAction"] = canApprove && !isRequestOwner ? nameof(Approvals) : nameof(Index);
+        ViewData["CanTakeAction"] = canAct
+            && (borrow.Status == BorrowStatus.InQueue || borrow.Status == BorrowStatus.Pending);
+        ViewData["CanEdit"] = isRequestOwner && borrow.Status == BorrowStatus.InQueue;
+        ViewData["BackAction"] = canView && !isRequestOwner ? nameof(Approvals) : nameof(Index);
+
+        var queuePositions = await QueuePositionHelper.GetBorrowQueuePositionsAsync(_db, cancellationToken);
+        ViewData["QueuePositions"] = queuePositions;
 
         return View(new BorrowDetailsViewModel
         {
@@ -321,6 +350,8 @@ public class BorrowController : Controller
             TelNo = borrow.TelNo,
             Remarks = borrow.Remarks,
             Status = borrow.Status,
+            PendingReason = borrow.PendingReason,
+            RejectionReason = borrow.RejectionReason,
             ApprovedAt = borrow.ApprovedAt,
             RejectedAt = borrow.RejectedAt,
             IssuedAt = borrow.IssuedAt,
@@ -340,7 +371,7 @@ public class BorrowController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.BorrowApproval)]
+    [Authorize(Policy = SmrsPolicies.BorrowApprovalAction)]
     public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
     {
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
@@ -354,7 +385,7 @@ public class BorrowController : Controller
                 return NotFound();
             }
 
-            if (borrow.Status != BorrowStatus.Pending)
+            if (borrow.Status != BorrowStatus.InQueue && borrow.Status != BorrowStatus.Pending)
             {
                 await tx.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
@@ -408,37 +439,109 @@ public class BorrowController : Controller
             borrow.Status = BorrowStatus.Approved;
             borrow.ApprovedAt = now;
             borrow.IssuedAt = now;
+            borrow.PendingReason = null;
             borrow.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _db.SaveChangesAsync(cancellationToken);
+            var affectedItemIds = borrow.Items
+                .Where(i => i.InventoryItemId.HasValue)
+                .Select(i => i.InventoryItemId!.Value)
+                .Distinct()
+                .ToList();
+            await LowStockTracker.RefreshAsync(_db, affectedItemIds, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
 
         TempData["StatusMessage"] = "Borrow request approved and issued.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Approvals));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.BorrowApproval)]
-    public async Task<IActionResult> Reject(int id, CancellationToken cancellationToken)
+    [Authorize(Policy = SmrsPolicies.BorrowApprovalAction)]
+    public async Task<IActionResult> Reject(int id, string? reason, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "A reason is required when rejecting a borrow request.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         var borrow = await _db.BorrowRecords.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
         if (borrow is null)
             return NotFound();
 
-        if (borrow.Status != BorrowStatus.Pending)
+        if (borrow.Status != BorrowStatus.InQueue && borrow.Status != BorrowStatus.Pending)
         {
             TempData["ErrorMessage"] = "This borrow request is already processed.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
         borrow.Status = BorrowStatus.Rejected;
+        borrow.RejectionReason = reason.Trim();
+        borrow.PendingReason = null;
         borrow.RejectedAt = DateTimeOffset.UtcNow;
         borrow.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         await _db.SaveChangesAsync(cancellationToken);
 
         TempData["StatusMessage"] = "Borrow request rejected.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Approvals));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.BorrowApprovalAction)]
+    public async Task<IActionResult> Hold(int id, string? reason, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "A reason is required when putting a borrow request on hold.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var borrow = await _db.BorrowRecords.SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (borrow is null)
+            return NotFound();
+
+        if (borrow.Status != BorrowStatus.InQueue)
+        {
+            TempData["ErrorMessage"] = "Only queued borrow requests can be put on hold.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        borrow.Status = BorrowStatus.Pending;
+        borrow.PendingReason = reason.Trim();
+        borrow.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        TempData["StatusMessage"] = "Borrow request placed on hold.";
+        return RedirectToAction(nameof(Approvals));
+    }
+
+    [HttpGet]
+    [Authorize(Policy = SmrsPolicies.BorrowApproval)]
+    public async Task<IActionResult> Rejected(CancellationToken cancellationToken)
+    {
+        var rows = await _db.BorrowRecords
+            .AsNoTracking()
+            .Include(r => r.Items)
+            .Where(r => r.Status == BorrowStatus.Rejected)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new BorrowApprovalRowViewModel
+            {
+                Id = r.Id,
+                RfNo = r.RfNo,
+                BorrowerName = r.BorrowerName,
+                BorrowerDivision = r.BorrowerDivision,
+                SlipDate = r.SlipDate,
+                ItemCount = r.Items.Count,
+                Status = r.Status,
+                RejectionReason = r.RejectionReason,
+                IssuedAt = r.IssuedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return View(rows);
     }
 
     [HttpGet]

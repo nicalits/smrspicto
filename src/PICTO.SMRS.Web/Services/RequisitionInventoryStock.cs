@@ -62,13 +62,13 @@ public static class RequisitionInventoryStock
                 var taken = await (
                     from ri in db.RequisitionRecordItems
                     join r in db.RequisitionRecords on ri.RequisitionRecordId equals r.Id
-                    where (r.Status == RequisitionStatus.Pending || r.Status == RequisitionStatus.Approved)
+                    where (r.Status == RequisitionStatus.InQueue || r.Status == RequisitionStatus.Pending || r.Status == RequisitionStatus.Approved)
                           && ri.InventoryItemId == inv.Id
                           && ri.SerialNo != null
                           && ri.SerialNo == sn
                     select ri).AnyAsync(cancellationToken);
                 if (taken)
-                    return $"Serial \"{sn}\" is already on another pending requisition.";
+                    return $"Serial \"{sn}\" is already on another active requisition.";
             }
         }
 

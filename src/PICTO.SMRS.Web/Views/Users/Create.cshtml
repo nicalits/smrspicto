@@ -3,6 +3,7 @@
     ViewData["Title"] = "User accounts";
     var editUserUrlBase = Url.Action("Edit", "Users") ?? "";
     var showAddAccount = !ViewData.ModelState.IsValid;
+    var canManageUsers = (bool?)ViewData["CanManageUsers"] == true;
 }
 
 <div class="smrs-page smrs-page--wide">
@@ -22,14 +23,21 @@
 
         <section class="smrs-section" id="accounts">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                <h2 class="smrs-section-heading mb-0">Click a row to open <strong>Edit</strong> or <strong>Delete</strong>.</h2>
-                <button type="button"
-                        class="btn btn-sm btn-gold text-navy fw-semibold"
-                        id="toggleAddAccountBtn"
-                        data-bs-toggle="modal"
-                        data-bs-target="#addUserModal">
-                    Add account
-                </button>
+                @if (canManageUsers)
+                {
+                    <h2 class="smrs-section-heading mb-0">Click a row to open <strong>Edit</strong> or <strong>Delete</strong>.</h2>
+                    <button type="button"
+                            class="btn btn-sm btn-gold text-navy fw-semibold"
+                            id="toggleAddAccountBtn"
+                            data-bs-toggle="modal"
+                            data-bs-target="#addUserModal">
+                        Add account
+                    </button>
+                }
+                else
+                {
+                    <h2 class="smrs-section-heading mb-0">User Directory</h2>
+                }
             </div>
             @if (Model.Accounts is null || Model.Accounts.Count == 0)
             {
@@ -62,22 +70,36 @@
                             @foreach (var row in Model.Accounts)
                             {
                                 var isSelf = string.Equals(row.Id, Model.CurrentUserId, StringComparison.Ordinal);
-                                <tr class="smrs-account-row"
-                                    tabindex="0"
-                                    role="button"
-                                    aria-haspopup="true"
-                                    aria-expanded="false"
-                                    aria-label="Open actions for @row.UserName"
-                                    data-user-id="@row.Id"
-                                    data-user-name="@row.UserName"
-                                    data-can-delete="@(isSelf ? "false" : "true")">
-                                    <td>@row.UserName</td>
-                                    <td>@row.EmployeeName</td>
-                                    <td>@row.Email</td>
-                                    <td>@row.Position</td>
-                                    <td>@row.Division</td>
-                                    <td>@row.Roles</td>
-                                </tr>
+                                if (canManageUsers)
+                                {
+                                    <tr class="smrs-account-row"
+                                        tabindex="0"
+                                        role="button"
+                                        aria-haspopup="true"
+                                        aria-expanded="false"
+                                        aria-label="Open actions for @row.UserName"
+                                        data-user-id="@row.Id"
+                                        data-user-name="@row.UserName"
+                                        data-can-delete="@(isSelf ? "false" : "true")">
+                                        <td>@row.UserName</td>
+                                        <td>@row.EmployeeName</td>
+                                        <td>@row.Email</td>
+                                        <td>@row.Position</td>
+                                        <td>@row.Division</td>
+                                        <td>@row.Roles</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td>@row.UserName</td>
+                                        <td>@row.EmployeeName</td>
+                                        <td>@row.Email</td>
+                                        <td>@row.Position</td>
+                                        <td>@row.Division</td>
+                                        <td>@row.Roles</td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
@@ -88,6 +110,8 @@
     </div>
 </div>
 
+@if (canManageUsers)
+{
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
@@ -135,9 +159,12 @@
         </div>
     </div>
 </div>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    @if (canManageUsers)
+    {
     <script>
         (function () {
             var editBase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(editUserUrlBase.TrimEnd('/')));
@@ -280,4 +307,5 @@
             }
         })();
     </script>
+    }
 }

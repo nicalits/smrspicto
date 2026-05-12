@@ -28,7 +28,9 @@ public static class IdentitySeeder
             }
         }
 
-        var section = configuration.GetSection("Seed:InitialDepartmentHead");
+        var section = configuration.GetSection("Seed:InitialAdmin");
+        if (!section.Exists())
+            section = configuration.GetSection("Seed:InitialDepartmentHead");
         var userName = section["UserName"];
         var email = section["Email"];
         var password = section["Password"];
@@ -37,7 +39,7 @@ public static class IdentitySeeder
             string.IsNullOrWhiteSpace(password))
         {
             logger.LogWarning(
-                "Seed:InitialDepartmentHead is not configured (UserName, Email, Password). Skipping bootstrap admin user.");
+                "Seed:InitialAdmin is not configured (UserName, Email, Password). Skipping bootstrap admin user.");
             return;
         }
 
@@ -60,10 +62,10 @@ public static class IdentitySeeder
             return;
         }
 
-        var roleResult = await userManager.AddToRoleAsync(user, SmrsRoles.DepartmentHead);
+        var roleResult = await userManager.AddToRoleAsync(user, SmrsRoles.Admin);
         if (!roleResult.Succeeded)
         {
-            logger.LogError("Failed to assign DepartmentHead to seed user: {Errors}",
+            logger.LogError("Failed to assign Admin to seed user: {Errors}",
                 string.Join("; ", roleResult.Errors.Select(e => e.Description)));
         }
     }

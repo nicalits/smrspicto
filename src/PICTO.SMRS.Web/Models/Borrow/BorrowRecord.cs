@@ -2,9 +2,10 @@ namespace PICTO.SMRS.Web.Models.Borrow;
 
 public enum BorrowStatus
 {
-    Pending = 1,
+    InQueue = 1,
     Approved = 2,
-    Rejected = 3
+    Rejected = 3,
+    Pending = 4
 }
 
 public class BorrowRecord
@@ -29,7 +30,11 @@ public class BorrowRecord
 
     public string? Remarks { get; set; }
 
-    public BorrowStatus Status { get; set; } = BorrowStatus.Pending;
+    public BorrowStatus Status { get; set; } = BorrowStatus.InQueue;
+
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 

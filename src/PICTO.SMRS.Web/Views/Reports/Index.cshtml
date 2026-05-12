@@ -1,3 +1,4 @@
+@using PICTO.SMRS.Web.Models.Inventory
 @model PICTO.SMRS.Web.Models.Reports.ReportsIndexViewModel
 @{
     ViewData["Title"] = "Reports";
@@ -39,6 +40,16 @@
 
         <section class="smrs-section mt-4">
             <div class="smrs-dashboard-kpis smrs-report-kpis">
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
+                    <span class="smrs-dashboard-kpi__label">Transactions Today</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.TotalTransactionsToday</strong>
+                    <div class="smrs-report-kpi__note">Requisitions + Borrows today</div>
+                </article>
+                <article class="smrs-dashboard-kpi smrs-report-kpi">
+                    <span class="smrs-dashboard-kpi__label">Employee Requestors</span>
+                    <strong class="smrs-dashboard-kpi__value">@Model.TotalEmployeeRequestors</strong>
+                    <div class="smrs-report-kpi__note">Unique employees in range</div>
+                </article>
                 <article class="smrs-dashboard-kpi smrs-report-kpi">
                     <span class="smrs-dashboard-kpi__label">Units In Use</span>
                     <strong class="smrs-dashboard-kpi__value">@Model.InUseUnits</strong>
@@ -157,6 +168,206 @@
                 </div>
             </div>
         </section>
+
+        <section class="smrs-section mt-4">
+            <div class="smrs-card smrs-card--page smrs-card--tight">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <h2 class="h6 text-uppercase text-muted mb-0">
+                        <svg class="me-1" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#dc3545;vertical-align:text-bottom"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+                        Low Stock Alerts
+                        @if (Model.LowStockItems.Count > 0)
+                        {
+                            <span class="badge text-bg-danger ms-1">@Model.LowStockItems.Count</span>
+                        }
+                    </h2>
+                </div>
+
+                @if (Model.LowStockItems.Count == 0)
+                {
+                    <div class="alert alert-success mb-0">All items are above their low stock thresholds.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Available</th>
+                                    <th class="text-end">Threshold</th>
+                                    <th>Low since</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.LowStockItems)
+                                {
+                                    var isZero = item.AvailableQuantity == 0;
+                                    <tr class="@(isZero ? "table-danger" : "table-warning")">
+                                        <td>
+                                            <a asp-controller="Inventory" asp-action="Index" asp-route-q="@item.ItemName" class="text-decoration-none fw-semibold">
+                                                @item.ItemName
+                                            </a>
+                                            @if (!string.IsNullOrWhiteSpace(item.Brand))
+                                            {
+                                                <span class="text-muted small">(@item.Brand)</span>
+                                            }
+                                        </td>
+                                        <td>@(item.SupplyGroup == SupplyGroup.ItSupplies ? "IT" : "Office")</td>
+                                        <td class="text-end fw-bold @(isZero ? "text-danger" : "")">@item.AvailableQuantity</td>
+                                        <td class="text-end text-muted">@item.LowStockLevel</td>
+                                        <td>
+                                            @if (item.LowStockSince is { } since)
+                                            {
+                                                <span class="small">@since.LocalDateTime.ToString("yyyy-MM-dd")</span>
+                                                <span class="d-block small text-muted">@((int)(DateTimeOffset.UtcNow - since).TotalDays) days ago</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="smrs-section mt-4">
+            <div class="smrs-card smrs-card--page smrs-card--tight">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h2 class="h6 text-uppercase text-muted mb-0">
+                            <svg class="me-1" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#fd7e14;vertical-align:text-bottom"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                            No Movement (30+ days)
+                            @if (Model.StaleItems.Count > 0)
+                            {
+                                <span class="badge text-bg-warning text-dark ms-1">@Model.StaleItems.Count</span>
+                            }
+                        </h2>
+                        <div class="small text-muted mt-1">Items with no approved requisitions or borrows in the last 30 days.</div>
+                    </div>
+                </div>
+
+                @if (Model.StaleItems.Count == 0)
+                {
+                    <div class="alert alert-success mb-0">All inventory items have had recent activity.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Type</th>
+                                    <th class="text-end">On hand</th>
+                                    <th>Last activity</th>
+                                    <th class="text-end">Days idle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.StaleItems)
+                                {
+                                    var severe = item.DaysSinceActivity >= 90;
+                                    <tr class="@(severe ? "table-warning" : "")">
+                                        <td>
+                                            <a asp-controller="Inventory" asp-action="Index" asp-route-q="@item.ItemName" class="text-decoration-none fw-semibold">
+                                                @item.ItemName
+                                            </a>
+                                            @if (!string.IsNullOrWhiteSpace(item.Brand))
+                                            {
+                                                <span class="text-muted small">(@item.Brand)</span>
+                                            }
+                                        </td>
+                                        <td>@(item.SupplyGroup == SupplyGroup.ItSupplies ? "IT" : "Office")</td>
+                                        <td class="text-end">@item.Quantity</td>
+                                        <td>
+                                            @if (item.LastActivityAt is { } lastAt)
+                                            {
+                                                <span class="small">@lastAt.LocalDateTime.ToString("yyyy-MM-dd")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">No activity recorded</span>
+                                            }
+                                        </td>
+                                        <td class="text-end fw-bold @(severe ? "text-danger" : "text-warning")">@item.DaysSinceActivity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+        <section class="smrs-section mt-4">
+            <div class="smrs-card smrs-card--page smrs-card--tight">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <div>
+                        <h2 class="h6 text-uppercase text-muted mb-0">
+                            <svg class="me-1" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#1a3a5c;vertical-align:text-bottom"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15.01l1.41 1.41L11 14.83V19h2v-4.17l1.59 1.59L16 15.01 12.01 11 8 15.01z"/></svg>
+                            Requests Log
+                            @if (Model.RequestLog.Count > 0)
+                            {
+                                <span class="badge text-bg-primary ms-1">@Model.RequestLog.Count</span>
+                            }
+                        </h2>
+                        <div class="small text-muted mt-1">All requisition and borrow requests in the selected range.</div>
+                    </div>
+                </div>
+
+                @if (Model.RequestLog.Count == 0)
+                {
+                    <div class="alert alert-secondary mb-0">No requests found in this date range.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Ref No.</th>
+                                    <th>Requestor</th>
+                                    <th>Division</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Items</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var req in Model.RequestLog)
+                                {
+                                    var statusBadge = req.Status switch
+                                    {
+                                        "InQueue" => "text-bg-info",
+                                        "Pending" => "text-bg-warning text-dark",
+                                        "Approved" => "text-bg-success",
+                                        "Rejected" => "text-bg-danger",
+                                        _ => "text-bg-light text-dark border"
+                                    };
+                                    var statusLabel = req.Status == "InQueue" ? "In Queue" : req.Status;
+                                    <tr>
+                                        <td><span class="badge text-bg-light text-dark border">@req.RequestType</span></td>
+                                        <td class="fw-semibold">@req.ReferenceNo</td>
+                                        <td>@req.RequestorName</td>
+                                        <td>@req.Division</td>
+                                        <td>@req.Date.ToString("yyyy-MM-dd")</td>
+                                        <td><span class="badge @statusBadge">@statusLabel</span></td>
+                                        <td class="text-end">@req.ItemCount</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+
     </div>
 </div>
 

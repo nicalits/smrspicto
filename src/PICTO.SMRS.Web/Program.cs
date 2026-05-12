@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PICTO.SMRS.Web.Data;
 using PICTO.SMRS.Web.Security;
+using PICTO.SMRS.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,17 +47,30 @@ builder.Services.AddAuthorization(options =>
             && !ctx.User.IsInRole(SmrsRoles.Employee)));
     options.AddPolicy(SmrsPolicies.UserManagement, policy =>
         policy.RequireRole(
+            SmrsRoles.Admin,
             SmrsRoles.DepartmentHead));
     options.AddPolicy(SmrsPolicies.RequisitionApproval, policy =>
         policy.RequireRole(
+            SmrsRoles.Admin,
             SmrsRoles.DepartmentHead,
             SmrsRoles.ItDivisionHead,
             SmrsRoles.OfficeDivisionHead));
+    options.AddPolicy(SmrsPolicies.RequisitionApprovalAction, policy =>
+        policy.RequireRole(
+            SmrsRoles.Admin,
+            SmrsRoles.ItDivisionHead,
+            SmrsRoles.OfficeDivisionHead));
     options.AddPolicy(SmrsPolicies.RequisitionChecker, policy =>
-        policy.RequireRole(SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
+        policy.RequireRole(SmrsRoles.Admin, SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
+    options.AddPolicy(SmrsPolicies.RequisitionCheckerAction, policy =>
+        policy.RequireRole(SmrsRoles.Admin, SmrsRoles.Encoder));
     options.AddPolicy(SmrsPolicies.BorrowApproval, policy =>
-        policy.RequireRole(SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
+        policy.RequireRole(SmrsRoles.Admin, SmrsRoles.Encoder, SmrsRoles.DepartmentHead));
+    options.AddPolicy(SmrsPolicies.BorrowApprovalAction, policy =>
+        policy.RequireRole(SmrsRoles.Admin, SmrsRoles.Encoder));
     options.AddPolicy(SmrsPolicies.InventoryAccess, policy =>
+        policy.RequireAuthenticatedUser());
+    options.AddPolicy(SmrsPolicies.InventoryManagement, policy =>
         policy.RequireAssertion(ctx =>
             ctx.User.Identity?.IsAuthenticated == true
             && !ctx.User.IsInRole(SmrsRoles.Employee)));
@@ -68,6 +82,16 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     options.SlidingExpiration = true;
     options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.HttpContext.User.IsInRole(SmrsRoles.Employee))
+        {
+            context.Response.Redirect("/Inventory");
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 var app = builder.Build();
@@ -84,6 +108,13 @@ using (var scope = app.Services.CreateScope())
         END
         """);
     await db.Database.MigrateAsync();
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('InventoryItems', 'LowStockSince') IS NULL
+        BEGIN
+            ALTER TABLE [InventoryItems]
+            ADD [LowStockSince] datetimeoffset NULL;
+        END
+        """);
     await db.Database.ExecuteSqlRawAsync("""
         IF COL_LENGTH('InventoryItems', 'ReservedQuantity') IS NOT NULL
         BEGIN
@@ -102,9 +133,30 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE [InventoryItems] DROP COLUMN [ReservedQuantity];
         END
         """);
+
+    await db.Database.ExecuteSqlRawAsync("""
+        IF COL_LENGTH('RequisitionRecords', 'PendingReason') IS NULL
+            ALTER TABLE [RequisitionRecords] ADD [PendingReason] nvarchar(500) NULL;
+        IF COL_LENGTH('RequisitionRecords', 'RejectionReason') IS NULL
+            ALTER TABLE [RequisitionRecords] ADD [RejectionReason] nvarchar(500) NULL;
+        IF COL_LENGTH('RequisitionRecords', 'ReceivedAt') IS NULL
+            ALTER TABLE [RequisitionRecords] ADD [ReceivedAt] datetimeoffset NULL;
+        IF COL_LENGTH('RequisitionRecords', 'ActionedByUserId') IS NULL
+            ALTER TABLE [RequisitionRecords] ADD [ActionedByUserId] nvarchar(450) NULL;
+        IF COL_LENGTH('BorrowRecords', 'PendingReason') IS NULL
+            ALTER TABLE [BorrowRecords] ADD [PendingReason] nvarchar(500) NULL;
+        IF COL_LENGTH('BorrowRecords', 'RejectionReason') IS NULL
+            ALTER TABLE [BorrowRecords] ADD [RejectionReason] nvarchar(500) NULL;
+        """);
 }
 
 await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger);
+
+using (var backfillScope = app.Services.CreateScope())
+{
+    var backfillDb = backfillScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await LowStockTracker.BackfillAsync(backfillDb);
+}
 
 if (app.Environment.IsDevelopment())
 {

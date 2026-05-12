@@ -4,6 +4,7 @@
     ViewData["Title"] = "Issuance";
     var pendingReleaseCount = Model.Count(r => r.MarkedInUseAt is null);
     var outInUseCount = Model.Count(r => r.MarkedInUseAt is not null);
+    var canIssue = (bool?)ViewData["CanIssue"] == true;
 }
 
 <div class="smrs-page">
@@ -62,25 +63,25 @@
                                     <td>
                                         @if (row.MarkedInUseAt is { } at)
                                         {
-                                            <span class="badge bg-primary">In use</span>
+                                            <span class="badge text-bg-light text-dark border">In use</span>
                                             <span class="text-muted small d-block">@at.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-secondary">Awaiting issuance</span>
+                                            <span class="badge text-bg-light text-dark border">Awaiting issuance</span>
                                         }
                                     </td>
                                     <td class="text-end">
                                         <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
-                                            <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Issuance" class="btn btn-sm btn-outline-primary">View</a>
-                                            @if (row.MarkedInUseAt is null)
+                                            <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Issuance" class="btn btn-sm btn-outline-dark">View</a>
+                                            @if (canIssue && row.MarkedInUseAt is null)
                                             {
                                                 <form asp-action="MarkInUse" method="post" class="d-inline"
                                                       onsubmit="return confirm('Record issuance for this requisition? Items will show as in use with the requestor.');">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="id" value="@row.Id" />
                                                     <input type="hidden" name="returnAction" value="Issuance" />
-                                                    <button type="submit" class="btn btn-sm btn-primary">Record issuance</button>
+                                                    <button type="submit" class="btn btn-sm btn-dark">Record issuance</button>
                                                 </form>
                                             }
                                         </div>

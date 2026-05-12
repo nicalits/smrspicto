@@ -54,6 +54,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.RequestorDivision).HasMaxLength(200).IsRequired();
             e.Property(x => x.Office).HasMaxLength(200);
             e.Property(x => x.MrIcsPosition).HasMaxLength(200);
+            e.Property(x => x.PendingReason).HasMaxLength(500);
+            e.Property(x => x.RejectionReason).HasMaxLength(500);
+            e.Property(x => x.ActionedByUserId).HasMaxLength(450);
             e.HasIndex(x => new { x.ItemType, x.Status, x.Date });
             e.HasIndex(x => x.RequestorUserId);
         });
@@ -80,6 +83,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.SlipTime).HasMaxLength(20);
             e.Property(x => x.TelNo).HasMaxLength(50);
             e.Property(x => x.Remarks).HasMaxLength(2000);
+            e.Property(x => x.PendingReason).HasMaxLength(500);
+            e.Property(x => x.RejectionReason).HasMaxLength(500);
             e.Property(x => x.ActionedByUserId).HasMaxLength(450);
             e.HasIndex(x => new { x.Status, x.CreatedAt });
             e.HasIndex(x => x.BorrowerUserId);

@@ -44,16 +44,16 @@
                                     <td>
                                         @if (row.MarkedInUseAt is { } at)
                                         {
-                                            <span class="badge bg-primary">In use</span>
+                                            <span class="badge text-bg-light text-dark border">In use</span>
                                             <span class="text-muted small d-block">@at.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-secondary">Awaiting issuance</span>
+                                            <span class="badge text-bg-light text-dark border">Awaiting issuance</span>
                                         }
                                     </td>
                                     <td class="text-end">
-                                        <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Checker" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-action="Details" asp-route-id="@row.Id" asp-route-returnAction="Checker" class="btn btn-sm btn-outline-dark">View</a>
                                     </td>
                                 </tr>
                             }

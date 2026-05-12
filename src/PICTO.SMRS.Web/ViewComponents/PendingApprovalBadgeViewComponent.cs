@@ -36,8 +36,8 @@ public class PendingApprovalBadgeViewComponent : ViewComponent
         var pendingApprovals = _db.RequisitionRecords
             .AsNoTracking()
             .ApplyApproverQueueFilter(claimsUser)
-            .Where(r => r.Status == RequisitionStatus.Pending);
-        var showSplitCounts = claimsUser.IsInRole(SmrsRoles.DepartmentHead);
+            .Where(r => r.Status == RequisitionStatus.InQueue || r.Status == RequisitionStatus.Pending);
+        var showSplitCounts = claimsUser.IsInRole(SmrsRoles.Admin) || claimsUser.IsInRole(SmrsRoles.DepartmentHead);
 
         var model = new PendingApprovalBadgeViewModel
         {

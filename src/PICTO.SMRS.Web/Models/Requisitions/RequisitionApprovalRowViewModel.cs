@@ -18,5 +18,9 @@ public class RequisitionApprovalRowViewModel
 
     public RequisitionStatus Status { get; set; }
 
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
+
     public DateTimeOffset? MarkedInUseAt { get; set; }
 }

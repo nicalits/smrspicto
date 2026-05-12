@@ -1,8 +1,10 @@
 @using PICTO.SMRS.Web.Models.Requisitions
+@using PICTO.SMRS.Web.Services
 @model IReadOnlyList<RequisitionIndexRowViewModel>
 @{
     ViewData["Title"] = "Requisitions";
 }
+@inject PICTO.SMRS.Web.Data.ApplicationDbContext Db
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
@@ -24,6 +26,7 @@
             }
             else
             {
+                var queuePositions = await QueuePositionHelper.GetRequisitionQueuePositionsAsync(Db);
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
@@ -40,11 +43,14 @@
                         <tbody>
                             @foreach (var row in Model)
                             {
+                                var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
                                 var badgeClass = row.Status switch
                                 {
-                                    RequisitionStatus.Approved => "bg-success",
-                                    RequisitionStatus.Rejected => "bg-danger",
-                                    _ => "bg-warning text-dark"
+                                    RequisitionStatus.InQueue => "text-bg-info",
+                                    RequisitionStatus.Pending => "text-bg-warning text-dark",
+                                    RequisitionStatus.Approved => "text-bg-success",
+                                    RequisitionStatus.Rejected => "text-bg-danger",
+                                    _ => "text-bg-light text-dark border"
                                 };
                                 <tr>
                                     <td>
@@ -53,17 +59,21 @@
                                     <td>@row.Date.ToString("yyyy-MM-dd")</td>
                                     <td>@(row.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</td>
                                     <td>@row.ItemCount</td>
-                                    <td><span class="badge @badgeClass">@row.Status</span></td>
+                                    <td><span class="badge @badgeClass">@statusDisplay</span></td>
                                     <td>
                                         @if (row.Status == RequisitionStatus.Approved)
                                         {
-                                            if (row.MarkedInUseAt is not null)
+                                            if (row.ReceivedAt is not null)
                                             {
-                                                <span class="badge bg-primary">In use</span>
+                                                <span class="badge text-bg-success">Received</span>
+                                            }
+                                            else if (row.MarkedInUseAt is not null)
+                                            {
+                                                <span class="badge text-bg-light text-dark border">In use</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary">Awaiting issuance</span>
+                                                <span class="badge text-bg-light text-dark border">Awaiting issuance</span>
                                             }
                                         }
                                         else
@@ -72,9 +82,9 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        @if (row.Status == RequisitionStatus.Pending)
+                                        @if (row.Status == RequisitionStatus.InQueue)
                                         {
-                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">Edit</a>
                                         }
                                     </td>
                                 </tr>

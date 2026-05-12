@@ -31,6 +31,10 @@ public class BorrowApprovalRowViewModel
 
     public BorrowStatus Status { get; set; }
 
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
+
     public DateTimeOffset? IssuedAt { get; set; }
 }
 
@@ -55,6 +59,10 @@ public class BorrowDetailsViewModel
     public string? Remarks { get; set; }
 
     public BorrowStatus Status { get; set; }
+
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
 
     public DateTimeOffset? ApprovedAt { get; set; }
 

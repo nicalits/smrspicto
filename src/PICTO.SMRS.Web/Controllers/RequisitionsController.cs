@@ -40,7 +40,8 @@ public class RequisitionsController : Controller
                 ItemType = r.ItemType,
                 ItemCount = r.Items.Count,
                 Status = r.Status,
-                MarkedInUseAt = r.MarkedInUseAt
+                MarkedInUseAt = r.MarkedInUseAt,
+                ReceivedAt = r.ReceivedAt
             })
             .ToListAsync(cancellationToken);
 
@@ -100,7 +101,7 @@ public class RequisitionsController : Controller
             RequestorDivision = model.RequestorDivision.Trim(),
             Office = string.IsNullOrWhiteSpace(model.Office) ? null : model.Office.Trim(),
             MrIcsPosition = string.IsNullOrWhiteSpace(model.MrIcsPosition) ? null : model.MrIcsPosition.Trim(),
-            Status = RequisitionStatus.Pending,
+            Status = RequisitionStatus.InQueue,
             CreatedAt = DateTimeOffset.UtcNow,
             Items = model.Items.Select(i => new RequisitionRecordItem
             {
@@ -149,9 +150,9 @@ public class RequisitionsController : Controller
             || !string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal))
             return Forbid();
 
-        if (requisition.Status != RequisitionStatus.Pending)
+        if (requisition.Status != RequisitionStatus.InQueue)
         {
-            TempData["ErrorMessage"] = "Only pending requisitions can be edited.";
+            TempData["ErrorMessage"] = "Only queued requisitions can be edited.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -198,9 +199,9 @@ public class RequisitionsController : Controller
             || !string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal))
             return Forbid();
 
-        if (requisition.Status != RequisitionStatus.Pending)
+        if (requisition.Status != RequisitionStatus.InQueue)
         {
-            TempData["ErrorMessage"] = "Only pending requisitions can be edited.";
+            TempData["ErrorMessage"] = "Only queued requisitions can be edited.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -276,9 +277,14 @@ public class RequisitionsController : Controller
     [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
     public async Task<IActionResult> Approvals(CancellationToken cancellationToken)
     {
+        ViewData["CanApprove"] = User.IsInRole(SmrsRoles.Admin)
+            || User.IsInRole(SmrsRoles.ItDivisionHead)
+            || User.IsInRole(SmrsRoles.OfficeDivisionHead);
+
         var query = _db.RequisitionRecords
             .AsNoTracking()
             .Include(r => r.Items)
+            .Where(r => r.Status == RequisitionStatus.InQueue || r.Status == RequisitionStatus.Pending)
             .OrderBy(r => r.CreatedAt)
             .ApplyApproverQueueFilter(User);
 
@@ -293,9 +299,13 @@ public class RequisitionsController : Controller
                 ItemCount = r.Items.Count,
                 Date = r.Date,
                 Status = r.Status,
+                PendingReason = r.PendingReason,
                 MarkedInUseAt = r.MarkedInUseAt
             })
             .ToListAsync(cancellationToken);
+
+        var queuePositions = await QueuePositionHelper.GetRequisitionQueuePositionsAsync(_db, cancellationToken);
+        ViewData["QueuePositions"] = queuePositions;
 
         return View(rows);
     }
@@ -305,6 +315,8 @@ public class RequisitionsController : Controller
     [Authorize(Policy = SmrsPolicies.RequisitionChecker)]
     public async Task<IActionResult> Issuance(CancellationToken cancellationToken)
     {
+        ViewData["CanIssue"] = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder);
+
         var rows = await _db.RequisitionRecords
             .AsNoTracking()
             .Include(r => r.Items)
@@ -366,27 +378,34 @@ public class RequisitionsController : Controller
             return NotFound();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var canApprove = User.IsInRole(SmrsRoles.DepartmentHead)
-            || User.IsInRole(SmrsRoles.ItDivisionHead)
-            || User.IsInRole(SmrsRoles.OfficeDivisionHead);
-        var canViewAsApprover = canApprove
-            && RequisitionApproverScope.CanApproveItemType(User, requisition.ItemType);
+        var canViewApproval = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.DepartmentHead)
+            || User.IsInRole(SmrsRoles.ItDivisionHead) || User.IsInRole(SmrsRoles.OfficeDivisionHead);
+        var canActOnApproval = RequisitionApproverScope.CanApproveItemType(User, requisition.ItemType);
+        var canViewThisRequisition = canViewApproval
+            && RequisitionApproverScope.CanViewItemType(User, requisition.ItemType);
         var isRequestOwner = !string.IsNullOrWhiteSpace(currentUserId)
             && string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal);
-        var canViewAsChecker = (User.IsInRole(SmrsRoles.Encoder) || User.IsInRole(SmrsRoles.DepartmentHead))
+        var canViewAsChecker = (User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder)
+            || User.IsInRole(SmrsRoles.DepartmentHead))
             && requisition.Status == RequisitionStatus.Approved;
 
-        if (!canViewAsApprover && !isRequestOwner && !canViewAsChecker)
+        if (!canViewThisRequisition && !isRequestOwner && !canViewAsChecker)
             return Forbid();
 
-        ViewData["CanTakeAction"] = canViewAsApprover && requisition.Status == RequisitionStatus.Pending;
-        ViewData["CanCancelApproval"] = canViewAsApprover
+        ViewData["CanTakeAction"] = canActOnApproval
+            && (requisition.Status == RequisitionStatus.InQueue || requisition.Status == RequisitionStatus.Pending);
+        ViewData["CanCancelApproval"] = canActOnApproval
             && requisition.Status == RequisitionStatus.Approved
             && requisition.MarkedInUseAt is null;
-        ViewData["CanEdit"] = isRequestOwner && requisition.Status == RequisitionStatus.Pending;
+        ViewData["CanEdit"] = isRequestOwner && requisition.Status == RequisitionStatus.InQueue;
+        ViewData["CanMarkReceived"] = isRequestOwner
+            && requisition.Status == RequisitionStatus.Approved
+            && requisition.MarkedInUseAt is not null
+            && requisition.ReceivedAt is null;
 
-        var canUseIssuanceNav = User.IsInRole(SmrsRoles.Encoder) || User.IsInRole(SmrsRoles.DepartmentHead);
-        if (canViewAsApprover)
+        var canUseIssuanceNav = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder)
+            || User.IsInRole(SmrsRoles.DepartmentHead);
+        if (canViewThisRequisition)
             ViewData["BackAction"] = nameof(Approvals);
         else if (requisition.Status == RequisitionStatus.Approved && canUseIssuanceNav)
         {
@@ -412,6 +431,9 @@ public class RequisitionsController : Controller
             .Where(i => inventoryItemIds.Contains(i.Id))
             .ToDictionaryAsync(i => i.Id, i => i.ItemName, cancellationToken);
 
+        var queuePositions = await QueuePositionHelper.GetRequisitionQueuePositionsAsync(_db, cancellationToken);
+        ViewData["QueuePositions"] = queuePositions;
+
         var vm = new RequisitionDetailsViewModel
         {
             Id = requisition.Id,
@@ -424,7 +446,10 @@ public class RequisitionsController : Controller
             MrIcsPosition = requisition.MrIcsPosition,
             ItemType = requisition.ItemType,
             Status = requisition.Status,
+            PendingReason = requisition.PendingReason,
+            RejectionReason = requisition.RejectionReason,
             MarkedInUseAt = requisition.MarkedInUseAt,
+            ReceivedAt = requisition.ReceivedAt,
             Items = requisition.Items.Select(i => new RequisitionDetailsItemViewModel
             {
                 ItemName = inventoryNames.GetValueOrDefault(i.InventoryItemId, $"Item #{i.InventoryItemId}"),
@@ -441,7 +466,7 @@ public class RequisitionsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
+    [Authorize(Policy = SmrsPolicies.RequisitionApprovalAction)]
     public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
     {
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
@@ -461,7 +486,7 @@ public class RequisitionsController : Controller
                 return Forbid();
             }
 
-            if (requisition.Status != RequisitionStatus.Pending)
+            if (requisition.Status != RequisitionStatus.InQueue && requisition.Status != RequisitionStatus.Pending)
             {
                 await tx.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
@@ -479,19 +504,29 @@ public class RequisitionsController : Controller
             }
 
             requisition.Status = RequisitionStatus.Approved;
+            requisition.PendingReason = null;
+            requisition.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _db.SaveChangesAsync(cancellationToken);
+            await LowStockTracker.RefreshAsync(_db, requisition.Items.Select(i => i.InventoryItemId).Distinct().ToList(), cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
 
         TempData["StatusMessage"] = "Requisition approved.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Approvals));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
-    public async Task<IActionResult> Reject(int id, CancellationToken cancellationToken)
+    [Authorize(Policy = SmrsPolicies.RequisitionApprovalAction)]
+    public async Task<IActionResult> Reject(int id, string? reason, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "A reason is required when rejecting a requisition.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
         {
             var requisition = await _db.RequisitionRecords
@@ -509,7 +544,7 @@ public class RequisitionsController : Controller
                 return Forbid();
             }
 
-            if (requisition.Status != RequisitionStatus.Pending)
+            if (requisition.Status != RequisitionStatus.InQueue && requisition.Status != RequisitionStatus.Pending)
             {
                 await tx.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
@@ -518,17 +553,54 @@ public class RequisitionsController : Controller
             }
 
             requisition.Status = RequisitionStatus.Rejected;
+            requisition.RejectionReason = reason.Trim();
+            requisition.PendingReason = null;
+            requisition.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
 
         TempData["StatusMessage"] = "Requisition rejected.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Approvals));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
+    [Authorize(Policy = SmrsPolicies.RequisitionApprovalAction)]
+    public async Task<IActionResult> Hold(int id, string? reason, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "A reason is required when putting a requisition on hold.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var requisition = await _db.RequisitionRecords
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (requisition is null)
+            return NotFound();
+
+        if (!RequisitionApproverScope.CanApproveItemType(User, requisition.ItemType))
+            return Forbid();
+
+        if (requisition.Status != RequisitionStatus.InQueue)
+        {
+            TempData["ErrorMessage"] = "Only queued requisitions can be put on hold.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        requisition.Status = RequisitionStatus.Pending;
+        requisition.PendingReason = reason.Trim();
+        requisition.ActionedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        TempData["StatusMessage"] = "Requisition placed on hold.";
+        return RedirectToAction(nameof(Approvals));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.RequisitionApprovalAction)]
     public async Task<IActionResult> CancelApproval(int id, CancellationToken cancellationToken)
     {
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
@@ -574,18 +646,22 @@ public class RequisitionsController : Controller
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            requisition.Status = RequisitionStatus.Pending;
+            requisition.Status = RequisitionStatus.InQueue;
+            requisition.PendingReason = null;
+            requisition.RejectionReason = null;
+            await _db.SaveChangesAsync(cancellationToken);
+            await LowStockTracker.RefreshAsync(_db, requisition.Items.Select(i => i.InventoryItemId).Distinct().ToList(), cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
 
-        TempData["StatusMessage"] = "Approval canceled; requisition returned to pending.";
-        return RedirectToAction(nameof(Details), new { id });
+        TempData["StatusMessage"] = "Approval canceled; requisition returned to queue.";
+        return RedirectToAction(nameof(Approvals));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = SmrsPolicies.RequisitionChecker)]
+    [Authorize(Policy = SmrsPolicies.RequisitionCheckerAction)]
     public async Task<IActionResult> MarkInUse(int id, string? returnAction, CancellationToken cancellationToken)
     {
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
@@ -625,6 +701,8 @@ public class RequisitionsController : Controller
             }
 
             requisition.MarkedInUseAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+            await LowStockTracker.RefreshAsync(_db, requisition.Items.Select(i => i.InventoryItemId).Distinct().ToList(), cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
@@ -673,7 +751,8 @@ public class RequisitionsController : Controller
             .Where(i => i.InventoryItemId == id
                 && i.SerialNo != null
                 && i.RequisitionRecord != null
-                && (i.RequisitionRecord.Status == RequisitionStatus.Pending
+                && (i.RequisitionRecord.Status == RequisitionStatus.InQueue
+                    || i.RequisitionRecord.Status == RequisitionStatus.Pending
                     || i.RequisitionRecord.Status == RequisitionStatus.Approved))
             .Select(i => i.SerialNo!);
 
@@ -685,5 +764,66 @@ public class RequisitionsController : Controller
             .ToListAsync(cancellationToken);
 
         return Json(serials);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkReceived(int id, CancellationToken cancellationToken)
+    {
+        var requisition = await _db.RequisitionRecords
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (requisition is null)
+            return NotFound();
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId)
+            || !string.Equals(requisition.RequestorUserId, currentUserId, StringComparison.Ordinal))
+            return Forbid();
+
+        if (requisition.Status != RequisitionStatus.Approved || requisition.MarkedInUseAt is null)
+        {
+            TempData["ErrorMessage"] = "Items must be issued before they can be marked as received.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (requisition.ReceivedAt is not null)
+        {
+            TempData["ErrorMessage"] = "Items have already been marked as received.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        requisition.ReceivedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        TempData["StatusMessage"] = "Items marked as received.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    [Authorize(Policy = SmrsPolicies.RequisitionApproval)]
+    public async Task<IActionResult> Rejected(CancellationToken cancellationToken)
+    {
+        var rows = await _db.RequisitionRecords
+            .AsNoTracking()
+            .Include(r => r.Items)
+            .Where(r => r.Status == RequisitionStatus.Rejected)
+            .ApplyApproverQueueFilter(User)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new RequisitionApprovalRowViewModel
+            {
+                Id = r.Id,
+                RsNo = r.RsNo,
+                RequestorName = r.RequestorName,
+                RequestorDivision = r.RequestorDivision,
+                ItemType = r.ItemType,
+                ItemCount = r.Items.Count,
+                Date = r.Date,
+                Status = r.Status,
+                RejectionReason = r.RejectionReason,
+                MarkedInUseAt = r.MarkedInUseAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return View(rows);
     }
 }

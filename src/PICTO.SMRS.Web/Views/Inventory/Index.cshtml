@@ -1,6 +1,7 @@
 @model InventoryIndexViewModel
 @{
     ViewData["Title"] = "Inventory";
+    var canManage = (bool?)ViewData["CanManageInventory"] == true;
     string NextDir(string sortKey) =>
         string.Equals(Model.SortBy, sortKey, StringComparison.OrdinalIgnoreCase)
         && string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase)
@@ -20,9 +21,12 @@
             <div>
                 <h1 class="h3 text-navy mb-1">Inventory</h1>
             </div>
-            <div class="flex-shrink-0">
-                <a asp-action="Create" class="btn btn-gold text-navy fw-semibold px-4">Add item</a>
-            </div>
+            @if (canManage)
+            {
+                <div class="flex-shrink-0">
+                    <a asp-action="Create" class="btn btn-gold text-navy fw-semibold px-4">Add item</a>
+                </div>
+            }
         </header>
 
         @if (TempData["StatusMessage"] is string ok)
@@ -52,7 +56,7 @@
             <h2 class="smrs-section-heading">Stock list</h2>
             @if (Model.Items.Count == 0)
             {
-                <p class="text-muted small mb-0">No items match your search, or inventory is empty. <a asp-action="Create">Add an item</a> to get started.</p>
+                <p class="text-muted small mb-0">No items match your search, or inventory is empty.@if (canManage) { <text> <a asp-action="Create">Add an item</a> to get started.</text> }</p>
             }
             else
             {
@@ -97,7 +101,10 @@
                                 <th scope="col" class="text-center">
                                     <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="serialized" asp-route-dir="@NextDir("serialized")" class="text-reset text-decoration-none">Serialized @SortIndicator("serialized")</a>
                                 </th>
-                                <th scope="col" class="text-center">Actions</th>
+                                @if (canManage)
+                                {
+                                    <th scope="col" class="text-center">Actions</th>
+                                }
                             </tr>
                         </thead>
                         <tbody>
@@ -136,15 +143,18 @@
                                     <td>@(row.Location ?? "—")</td>
                                     <td class="small text-muted" title="@row.Description">@(string.IsNullOrEmpty(row.Description) ? "—" : (row.Description.Length > 80 ? row.Description[..80] + "…" : row.Description))</td>
                                     <td class="text-center">@(row.IsSerialized ? "Yes" : "No")</td>
-                                    <td class="text-center">
-                                        <div class="d-inline-flex gap-1">
-                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" onsubmit="return confirm('Delete this inventory item?');">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                            </form>
-                                        </div>
-                                    </td>
+                                    @if (canManage)
+                                    {
+                                        <td class="text-center">
+                                            <div class="d-inline-flex gap-1">
+                                                <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                                <form asp-action="Delete" asp-route-id="@row.Id" method="post" onsubmit="return confirm('Delete this inventory item?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    }
                                 </tr>
                             }
                         </tbody>

@@ -2,9 +2,10 @@ namespace PICTO.SMRS.Web.Models.Requisitions;
 
 public enum RequisitionStatus
 {
-    Pending = 1,
+    InQueue = 1,
     Approved = 2,
-    Rejected = 3
+    Rejected = 3,
+    Pending = 4
 }
 
 public class RequisitionRecord
@@ -29,10 +30,19 @@ public class RequisitionRecord
 
     public string? MrIcsPosition { get; set; }
 
-    public RequisitionStatus Status { get; set; } = RequisitionStatus.Pending;
+    public RequisitionStatus Status { get; set; } = RequisitionStatus.InQueue;
+
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
+
+    public string? ActionedByUserId { get; set; }
 
     /// <summary>When set, encoder/dept head has recorded that approved items are with the requestor (in use).</summary>
     public DateTimeOffset? MarkedInUseAt { get; set; }
+
+    /// <summary>When the requestor confirms receipt of the issued items.</summary>
+    public DateTimeOffset? ReceivedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 

@@ -14,6 +14,7 @@ public class InventoryController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly IAuthorizationService _auth;
     private static readonly char[] SearchTokenSeparators = [' ', '\t', ',', ';'];
 
     private const long MaxImageBytes = 5 * 1024 * 1024;
@@ -22,15 +23,19 @@ public class InventoryController : Controller
         ".jpg", ".jpeg", ".png", ".gif", ".webp"
     };
 
-    public InventoryController(ApplicationDbContext db, IWebHostEnvironment env)
+    public InventoryController(ApplicationDbContext db, IWebHostEnvironment env, IAuthorizationService auth)
     {
         _db = db;
         _env = env;
+        _auth = auth;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index(string? q, string? column, string? sort, string? dir, CancellationToken cancellationToken)
     {
+        var canManage = (await _auth.AuthorizeAsync(User, SmrsPolicies.InventoryManagement)).Succeeded;
+        ViewData["CanManageInventory"] = canManage;
+
         var query = _db.InventoryItems.AsNoTracking().AsQueryable();
         query = ApplySearchFilter(query, q, column);
         var sortBy = NormalizeSortBy(sort);
@@ -57,6 +62,7 @@ public class InventoryController : Controller
     }
 
     [HttpGet]
+    [Authorize(Policy = SmrsPolicies.InventoryManagement)]
     public IActionResult Create()
     {
         return View(new AddInventoryItemViewModel
@@ -69,6 +75,7 @@ public class InventoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.InventoryManagement)]
     public async Task<IActionResult> Create(AddInventoryItemViewModel model, CancellationToken cancellationToken)
     {
         if (model.IsSerialized)
@@ -135,12 +142,15 @@ public class InventoryController : Controller
 
         _db.InventoryItems.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
+        await LowStockTracker.RefreshAsync(_db, [entity.Id], cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         TempData["StatusMessage"] = $"Item “{entity.ItemName}” was added to inventory.";
         return RedirectToAction(nameof(Index));
     }
 
     [HttpGet]
+    [Authorize(Policy = SmrsPolicies.InventoryManagement)]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
         var entity = await _db.InventoryItems
@@ -173,6 +183,7 @@ public class InventoryController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.InventoryManagement)]
     public async Task<IActionResult> Edit(int id, AddInventoryItemViewModel model, CancellationToken cancellationToken)
     {
         var entity = await _db.InventoryItems
@@ -242,12 +253,15 @@ public class InventoryController : Controller
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await LowStockTracker.RefreshAsync(_db, [entity.Id], cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
         TempData["StatusMessage"] = $"Item “{entity.ItemName}” was updated.";
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.InventoryManagement)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var entity = await _db.InventoryItems.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);

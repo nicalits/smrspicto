@@ -18,6 +18,9 @@ public class InventoryItem
 
     public int LowStockLevel { get; set; }
 
+    /// <summary>When available stock first dropped to or below <see cref="LowStockLevel"/>. Cleared on restock.</summary>
+    public DateTimeOffset? LowStockSince { get; set; }
+
     public string? Location { get; set; }
 
     public string? Description { get; set; }

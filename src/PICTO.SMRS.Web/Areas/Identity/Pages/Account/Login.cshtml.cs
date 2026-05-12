@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using PICTO.SMRS.Web.Security;
 
 namespace PICTO.SMRS.Web.Areas.Identity.Pages.Account;
 
@@ -11,11 +12,13 @@ namespace PICTO.SMRS.Web.Areas.Identity.Pages.Account;
 public class LoginModel : PageModel
 {
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly UserManager<IdentityUser> _userManager;
     private readonly ILogger<LoginModel> _logger;
 
-    public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+    public LoginModel(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, ILogger<LoginModel> logger)
     {
         _signInManager = signInManager;
+        _userManager = userManager;
         _logger = logger;
     }
 
@@ -68,6 +71,15 @@ public class LoginModel : PageModel
         if (result.Succeeded)
         {
             _logger.LogInformation("User {UserName} logged in.", Input.UserName);
+
+            var isDefaultReturn = returnUrl == Url.Content("~/") || returnUrl == "/";
+            if (isDefaultReturn)
+            {
+                var user = await _userManager.FindByNameAsync(Input.UserName.Trim());
+                if (user != null && await _userManager.IsInRoleAsync(user, SmrsRoles.Employee))
+                    return LocalRedirect(Url.Content("~/Inventory"));
+            }
+
             return LocalRedirect(returnUrl);
         }
 

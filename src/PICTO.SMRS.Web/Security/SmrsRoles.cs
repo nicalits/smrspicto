@@ -2,6 +2,7 @@ namespace PICTO.SMRS.Web.Security;
 
 public static class SmrsRoles
 {
+    public const string Admin = "Admin";
     public const string DepartmentHead = "DepartmentHead";
     public const string ItDivisionHead = "ItDivisionHead";
     public const string OfficeDivisionHead = "OfficeDivisionHead";
@@ -10,6 +11,7 @@ public static class SmrsRoles
 
     public static IReadOnlyList<string> All { get; } =
     [
+        Admin,
         DepartmentHead,
         ItDivisionHead,
         OfficeDivisionHead,
@@ -19,8 +21,6 @@ public static class SmrsRoles
 
     public static IReadOnlyList<string> UserManagers { get; } =
     [
-        DepartmentHead,
-        ItDivisionHead,
-        OfficeDivisionHead
+        Admin
     ];
 }

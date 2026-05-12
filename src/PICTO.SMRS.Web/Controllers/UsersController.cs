@@ -21,11 +21,13 @@ public class UsersController : Controller
     [HttpGet]
     public async Task<IActionResult> Create()
     {
+        ViewData["CanManageUsers"] = User.IsInRole(SmrsRoles.Admin);
         return View(await BuildPageForCurrentUserAsync(new CreateUserViewModel()));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = SmrsRoles.Admin)]
     public async Task<IActionResult> Create(CreateUserViewModel model)
     {
         if (!SmrsRoles.All.Contains(model.Role))
@@ -78,6 +80,7 @@ public class UsersController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = SmrsRoles.Admin)]
     public async Task<IActionResult> Edit(string id)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -93,6 +96,7 @@ public class UsersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = SmrsRoles.Admin)]
     public async Task<IActionResult> Edit(EditUserViewModel model)
     {
         if (!SmrsRoles.All.Contains(model.Role))
@@ -161,6 +165,7 @@ public class UsersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = SmrsRoles.Admin)]
     public async Task<IActionResult> Delete(string id)
     {
         if (string.IsNullOrWhiteSpace(id))

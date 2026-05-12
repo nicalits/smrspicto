@@ -1,4 +1,17 @@
+using PICTO.SMRS.Web.Models.Inventory;
+
 namespace PICTO.SMRS.Web.Models;
+
+public sealed class LowStockItemViewModel
+{
+    public int Id { get; init; }
+    public string ItemName { get; init; } = string.Empty;
+    public string? Brand { get; init; }
+    public SupplyGroup SupplyGroup { get; init; }
+    public int AvailableQuantity { get; init; }
+    public int LowStockLevel { get; init; }
+    public DateTimeOffset? LowStockSince { get; init; }
+}
 
 public sealed class HomeDashboardViewModel
 {
@@ -47,4 +60,6 @@ public sealed class HomeDashboardViewModel
     public int AvailableUnits { get; init; }
 
     public int UnitsUsed { get; init; }
+
+    public IReadOnlyList<LowStockItemViewModel> LowStockItems { get; init; } = [];
 }

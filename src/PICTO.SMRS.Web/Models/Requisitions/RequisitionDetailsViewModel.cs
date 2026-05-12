@@ -22,7 +22,13 @@ public class RequisitionDetailsViewModel
 
     public RequisitionStatus Status { get; set; }
 
+    public string? PendingReason { get; set; }
+
+    public string? RejectionReason { get; set; }
+
     public DateTimeOffset? MarkedInUseAt { get; set; }
+
+    public DateTimeOffset? ReceivedAt { get; set; }
 
     public List<RequisitionDetailsItemViewModel> Items { get; set; } = [];
 }

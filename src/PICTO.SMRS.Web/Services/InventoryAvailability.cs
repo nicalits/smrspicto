@@ -19,8 +19,10 @@ public static class InventoryAvailability
             .AsNoTracking()
             .Where(i => itemIds.Contains(i.InventoryItemId)
                 && i.RequisitionRecord != null
-                && i.RequisitionRecord.Status == RequisitionStatus.Approved
-                && i.RequisitionRecord.MarkedInUseAt != null)
+                && (i.RequisitionRecord.Status == RequisitionStatus.InQueue
+                    || i.RequisitionRecord.Status == RequisitionStatus.Pending
+                    || (i.RequisitionRecord.Status == RequisitionStatus.Approved
+                        && i.RequisitionRecord.MarkedInUseAt != null)))
             .GroupBy(i => i.InventoryItemId)
             .Select(g => new { InventoryItemId = g.Key, Quantity = g.Sum(i => i.Qty) })
             .ToListAsync(cancellationToken);
@@ -30,7 +32,9 @@ public static class InventoryAvailability
             .Where(i => i.InventoryItemId.HasValue
                 && itemIds.Contains(i.InventoryItemId.Value)
                 && i.BorrowRecord != null
-                && i.BorrowRecord.Status == BorrowStatus.Approved)
+                && (i.BorrowRecord.Status == BorrowStatus.InQueue
+                    || i.BorrowRecord.Status == BorrowStatus.Pending
+                    || i.BorrowRecord.Status == BorrowStatus.Approved))
             .GroupBy(i => i.InventoryItemId!.Value)
             .Select(g => new { InventoryItemId = g.Key, Quantity = g.Sum(i => i.Qty) })
             .ToListAsync(cancellationToken);

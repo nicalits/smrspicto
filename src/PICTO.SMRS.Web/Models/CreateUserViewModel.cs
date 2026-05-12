@@ -52,6 +52,7 @@ public class CreateUserViewModel
 
     private static string FormatRoleLabel(string role) => role switch
     {
+        SmrsRoles.Admin => "Admin",
         SmrsRoles.DepartmentHead => "Department Head",
         SmrsRoles.ItDivisionHead => "IT Division Head",
         SmrsRoles.OfficeDivisionHead => "Office Division Head",

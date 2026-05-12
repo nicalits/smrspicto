@@ -1,15 +1,16 @@
 @using PICTO.SMRS.Web.Models.Borrow
+@using PICTO.SMRS.Web.Services
 @model IReadOnlyList<BorrowIndexRowViewModel>
 @{
     ViewData["Title"] = "Borrow";
 }
+@inject PICTO.SMRS.Web.Data.ApplicationDbContext Db
 
 <div class="smrs-page">
     <div class="smrs-card smrs-card--page">
         <header class="smrs-page-header d-flex flex-wrap align-items-start justify-content-between gap-3">
             <div>
                 <h1 class="h3 text-navy mb-1">Borrow</h1>
-                
             </div>
             <a asp-action="Create" class="btn btn-gold text-navy fw-semibold">New borrower&rsquo;s slip</a>
         </header>
@@ -27,6 +28,7 @@
             }
             else
             {
+                var queuePositions = await QueuePositionHelper.GetBorrowQueuePositionsAsync(Db);
                 <div class="table-responsive">
                     <table class="table table-sm align-middle">
                         <thead class="table-light">
@@ -42,11 +44,14 @@
                         <tbody>
                             @foreach (var row in Model)
                             {
+                                var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
                                 var badgeClass = row.Status switch
                                 {
-                                    BorrowStatus.Approved => "bg-success",
-                                    BorrowStatus.Rejected => "bg-danger",
-                                    _ => "bg-warning text-dark"
+                                    BorrowStatus.InQueue => "text-bg-info",
+                                    BorrowStatus.Pending => "text-bg-warning text-dark",
+                                    BorrowStatus.Approved => "text-bg-success",
+                                    BorrowStatus.Rejected => "text-bg-danger",
+                                    _ => "text-bg-light text-dark border"
                                 };
                                 <tr>
                                     <td>
@@ -54,11 +59,11 @@
                                     </td>
                                     <td>@row.SlipDate.ToString("yyyy-MM-dd")</td>
                                     <td>@row.ItemCount</td>
-                                    <td><span class="badge @badgeClass">@row.Status</span></td>
+                                    <td><span class="badge @badgeClass">@statusDisplay</span></td>
                                     <td>
                                         @if (row.IssuedAt is { } issuedAt)
                                         {
-                                            <span class="badge bg-primary">Issued</span>
+                                            <span class="badge text-bg-light text-dark border">Issued</span>
                                             <span class="d-block small text-muted">@issuedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                                         }
                                         else
@@ -67,11 +72,11 @@
                                         }
                                     </td>
                                     <td class="text-end">
-                                        @if (row.Status == BorrowStatus.Pending)
+                                        @if (row.Status == BorrowStatus.InQueue)
                                         {
-                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                                            <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">Edit</a>
                                         }
-                                        <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                        <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">View</a>
                                     </td>
                                 </tr>
                             }

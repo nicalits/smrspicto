@@ -20,7 +20,14 @@
                                 aria-controls="smrsNavOffcanvas" aria-expanded="false" aria-label="Open menu">
                             <span class="navbar-toggler-icon"></span>
                         </button>
-                        <a class="navbar-brand fw-semibold text-gold mb-0" asp-area="" asp-controller="Home" asp-action="Index">PICTO: SMRS</a>
+                        @if (User.IsInRole("Employee"))
+                        {
+                            <a class="navbar-brand fw-semibold text-gold mb-0" asp-area="" asp-controller="Inventory" asp-action="Index">PICTO: SMRS</a>
+                        }
+                        else
+                        {
+                            <a class="navbar-brand fw-semibold text-gold mb-0" asp-area="" asp-controller="Home" asp-action="Index">PICTO: SMRS</a>
+                        }
                     </div>
                     <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
                             aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle account menu">
