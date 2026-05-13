@@ -420,7 +420,8 @@ public class BorrowController : Controller
             var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
                 _db,
                 requestedByItemId.Keys.ToList(),
-                cancellationToken);
+                cancellationToken,
+                excludeBorrowRecordId: borrow.Id);
 
             foreach (var inv in inventoryItems)
             {
@@ -547,10 +548,16 @@ public class BorrowController : Controller
     [HttpGet]
     public async Task<IActionResult> InventoryItems(CancellationToken cancellationToken)
     {
-        var items = await _db.InventoryItems
+        var inventory = await _db.InventoryItems
             .AsNoTracking()
             .Where(i => i.SupplyGroup == SupplyGroup.ItSupplies)
             .OrderBy(i => i.ItemName)
+            .ToListAsync(cancellationToken);
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
+            _db,
+            inventory.Select(i => i.Id).ToList(),
+            cancellationToken);
+        var items = inventory
             .Select(i => new
             {
                 id = i.Id,
@@ -558,9 +565,11 @@ public class BorrowController : Controller
                 brand = i.Brand,
                 specification = string.IsNullOrWhiteSpace(i.Description) ? i.Specifications : i.Description,
                 unit = i.Unit.GetDisplayName(),
-                supplyGroup = i.SupplyGroup
+                supplyGroup = i.SupplyGroup,
+                isSerialized = i.IsSerialized,
+                availableQuantity = Math.Max(0, i.Quantity - unavailableByItemId.GetValueOrDefault(i.Id))
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Json(items);
     }

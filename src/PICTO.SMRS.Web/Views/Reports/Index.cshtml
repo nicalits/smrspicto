@@ -342,14 +342,6 @@
                             <tbody>
                                 @foreach (var req in Model.RequestLog)
                                 {
-                                    var statusBadge = req.Status switch
-                                    {
-                                        "InQueue" => "text-bg-info",
-                                        "Pending" => "text-bg-warning text-dark",
-                                        "Approved" => "text-bg-success",
-                                        "Rejected" => "text-bg-danger",
-                                        _ => "text-bg-light text-dark border"
-                                    };
                                     var statusLabel = req.Status == "InQueue" ? "In Queue" : req.Status;
                                     <tr>
                                         <td><span class="badge text-bg-light text-dark border">@req.RequestType</span></td>
@@ -357,7 +349,7 @@
                                         <td>@req.RequestorName</td>
                                         <td>@req.Division</td>
                                         <td>@req.Date.ToString("yyyy-MM-dd")</td>
-                                        <td><span class="badge @statusBadge">@statusLabel</span></td>
+                                        <td>@statusLabel</td>
                                         <td class="text-end">@req.ItemCount</td>
                                     </tr>
                                 }

@@ -13,6 +13,7 @@
             return "↕";
         return string.Equals(Model.SortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "↑" : "↓";
     }
+    var lowStockRoute = Model.LowStockOnly ? "true" : null;
 }
 
 <div class="smrs-page smrs-page--wide">
@@ -46,6 +47,12 @@
                     <label for="column" class="form-label">Search in</label>
                     <select class="form-select" id="column" name="column" asp-items="Model.ColumnOptions"></select>
                 </div>
+                <div class="col-12 col-md-6 col-lg-2">
+                    <div class="form-check mb-lg-2">
+                        <input class="form-check-input" type="checkbox" id="lowStock" name="lowStock" value="true" checked="@Model.LowStockOnly" />
+                        <label class="form-check-label" for="lowStock">Low stock only</label>
+                    </div>
+                </div>
                 <div class="col-12 col-md-6 col-lg-2 d-grid">
                     <button type="submit" class="btn btn-primary">Search</button>
                 </div>
@@ -66,40 +73,40 @@
                             <tr>
                                 <th scope="col" class="text-center" style="width:4rem;">Photo</th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="item" asp-route-dir="@NextDir("item")" class="text-reset text-decoration-none">Item @SortIndicator("item")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="item" asp-route-dir="@NextDir("item")" class="text-reset text-decoration-none">Item @SortIndicator("item")</a>
                                 </th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="brand" asp-route-dir="@NextDir("brand")" class="text-reset text-decoration-none">Brand @SortIndicator("brand")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="brand" asp-route-dir="@NextDir("brand")" class="text-reset text-decoration-none">Brand @SortIndicator("brand")</a>
                                 </th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="group" asp-route-dir="@NextDir("group")" class="text-reset text-decoration-none">Group @SortIndicator("group")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="group" asp-route-dir="@NextDir("group")" class="text-reset text-decoration-none">Group @SortIndicator("group")</a>
                                 </th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="unit" asp-route-dir="@NextDir("unit")" class="text-reset text-decoration-none">Unit @SortIndicator("unit")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="unit" asp-route-dir="@NextDir("unit")" class="text-reset text-decoration-none">Unit @SortIndicator("unit")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="qty" asp-route-dir="@NextDir("qty")" class="text-reset text-decoration-none">Qty @SortIndicator("qty")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="qty" asp-route-dir="@NextDir("qty")" class="text-reset text-decoration-none">Qty @SortIndicator("qty")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="price" asp-route-dir="@NextDir("price")" class="text-reset text-decoration-none">Price @SortIndicator("price")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="price" asp-route-dir="@NextDir("price")" class="text-reset text-decoration-none">Price @SortIndicator("price")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="total" asp-route-dir="@NextDir("total")" class="text-reset text-decoration-none">Total Amount @SortIndicator("total")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="total" asp-route-dir="@NextDir("total")" class="text-reset text-decoration-none">Total Amount @SortIndicator("total")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="available" asp-route-dir="@NextDir("available")" class="text-reset text-decoration-none">Available @SortIndicator("available")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="available" asp-route-dir="@NextDir("available")" class="text-reset text-decoration-none">Available @SortIndicator("available")</a>
                                 </th>
                                 <th scope="col" class="text-end">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="lowstock" asp-route-dir="@NextDir("lowstock")" class="text-reset text-decoration-none">Low stock @SortIndicator("lowstock")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="lowstock" asp-route-dir="@NextDir("lowstock")" class="text-reset text-decoration-none">Low stock @SortIndicator("lowstock")</a>
                                 </th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="location" asp-route-dir="@NextDir("location")" class="text-reset text-decoration-none">Location @SortIndicator("location")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="location" asp-route-dir="@NextDir("location")" class="text-reset text-decoration-none">Location @SortIndicator("location")</a>
                                 </th>
                                 <th scope="col">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="description" asp-route-dir="@NextDir("description")" class="text-reset text-decoration-none">Description @SortIndicator("description")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="description" asp-route-dir="@NextDir("description")" class="text-reset text-decoration-none">Description @SortIndicator("description")</a>
                                 </th>
                                 <th scope="col" class="text-center">
-                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-sort="serialized" asp-route-dir="@NextDir("serialized")" class="text-reset text-decoration-none">Serialized @SortIndicator("serialized")</a>
+                                    <a asp-action="Index" asp-route-q="@Model.SearchQuery" asp-route-column="@Model.SearchColumn" asp-route-lowStock="@lowStockRoute" asp-route-sort="serialized" asp-route-dir="@NextDir("serialized")" class="text-reset text-decoration-none">Serialized @SortIndicator("serialized")</a>
                                 </th>
                                 @if (canManage)
                                 {

@@ -15,5 +15,7 @@ public class InventoryIndexViewModel
 
     public string SortDirection { get; set; } = "asc";
 
+    public bool LowStockOnly { get; set; }
+
     public IReadOnlyList<InventoryListRowViewModel> Items { get; set; } = Array.Empty<InventoryListRowViewModel>();
 }

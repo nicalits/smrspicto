@@ -11,7 +11,7 @@
 <div class="smrs-page smrs-page--wide">
     <div class="smrs-card smrs-card--page smrs-card--tight">
         <section class="smrs-section">
-            <form asp-action="@formAction" method="post" novalidate>
+            <form asp-action="@formAction" method="post" id="borrowForm" novalidate>
                 @Html.AntiForgeryToken()
                 @if (editId is int id)
                 {
@@ -96,7 +96,7 @@
                                         <span asp-validation-for="Items[i].Description" class="text-danger small"></span>
                                     </td>
                                     <td class="align-top">
-                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm" type="number" min="1" />
+                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm borrow-qty" type="number" min="1" />
                                         <span asp-validation-for="Items[i].Qty" class="text-danger small"></span>
                                     </td>
                                     <td class="align-top">
@@ -187,15 +187,16 @@
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 25%;">Item</th>
-                        <th style="width: 18%;">Brand</th>
-                        <th style="width: 35%;">Specification</th>
+                        <th style="width: 23%;">Item</th>
+                        <th style="width: 17%;">Brand</th>
+                        <th style="width: 30%;">Specification</th>
                         <th style="width: 10%;">Unit</th>
-                        <th style="width: 12%;"></th>
+                        <th style="width: 10%;">Serialized</th>
+                        <th style="width: 10%;"></th>
                     </tr>
                 </thead>
                 <tbody id="borrowItemPickerBody">
-                    <tr><td colspan="5" class="text-muted small">No items found.</td></tr>
+                    <tr><td colspan="6" class="text-muted small">No items found.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -206,6 +207,7 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
+            var form = document.getElementById('borrowForm');
             var body = document.getElementById('borrowItemsBody');
             var addBtn = document.getElementById('borrowAddRow');
             if (!body || !addBtn) return;
@@ -221,6 +223,66 @@
                     return !!(part && String(part).trim());
                 });
                 return parts.join(' - ');
+            }
+
+            function availableLabel(item) {
+                return Number(item && item.availableQuantity || 0) + ' available';
+            }
+
+            function getItemById(idValue) {
+                var idNum = parseInt(idValue || '0', 10);
+                if (!idNum) return null;
+                return itemsCache.find(function (it) { return it.id === idNum; }) || null;
+            }
+
+            function syncQuantityLimit(row) {
+                var idInput = row.querySelector('.borrow-item-id');
+                var qty = row.querySelector('.borrow-qty');
+                if (!idInput || !qty) return;
+
+                var selectedItem = getItemById(idInput.value);
+                if (!selectedItem) {
+                    qty.removeAttribute('max');
+                    qty.setCustomValidity('');
+                    return;
+                }
+
+                qty.max = String(Math.max(0, Number(selectedItem.availableQuantity || 0)));
+                qty.title = 'Available quantity: ' + qty.max;
+                if (Number(qty.value || 0) > Number(qty.max || 0)) {
+                    qty.value = qty.max;
+                }
+            }
+
+            function validateQuantities() {
+                var requestedByItem = {};
+                body.querySelectorAll('tr.borrow-item-row').forEach(function (row) {
+                    var idInput = row.querySelector('.borrow-item-id');
+                    var qtyInput = row.querySelector('.borrow-qty');
+                    if (!idInput || !qtyInput) return;
+                    qtyInput.setCustomValidity('');
+
+                    var selectedItem = getItemById(idInput.value);
+                    if (!selectedItem) return;
+
+                    var itemId = idInput.value || '0';
+                    requestedByItem[itemId] = (requestedByItem[itemId] || 0) + Number(qtyInput.value || 0);
+                });
+
+                body.querySelectorAll('tr.borrow-item-row').forEach(function (row) {
+                    var idInput = row.querySelector('.borrow-item-id');
+                    var qtyInput = row.querySelector('.borrow-qty');
+                    if (!idInput || !qtyInput) return;
+
+                    var selectedItem = getItemById(idInput.value);
+                    if (!selectedItem) return;
+
+                    var available = Math.max(0, Number(selectedItem.availableQuantity || 0));
+                    var requested = requestedByItem[idInput.value || '0'] || 0;
+                    if (requested > available) {
+                        qtyInput.setCustomValidity('Only ' + available + ' available for ' + selectedItem.name + '.');
+                    }
+                });
             }
 
             function isItSupply(item) {
@@ -251,12 +313,12 @@
                 var keyword = (modalSearch && modalSearch.value ? modalSearch.value : '').trim().toLowerCase();
                 var filtered = itemsCache.filter(function (it) {
                     if (!keyword) return true;
-                    var haystack = [it.name || '', it.brand || '', it.specification || '', it.unit || ''].join(' ').toLowerCase();
+                    var haystack = [it.name || '', it.brand || '', it.specification || '', it.unit || '', it.isSerialized ? 'serialized yes' : 'not serialized no'].join(' ').toLowerCase();
                     return haystack.indexOf(keyword) !== -1;
                 });
 
                 if (!filtered.length) {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-muted small">No items found.</td></tr>';
+                    modalBody.innerHTML = '<tr><td colspan="6" class="text-muted small">No items found.</td></tr>';
                     return;
                 }
 
@@ -265,8 +327,9 @@
                         '<td>' + (it.name || '') + '</td>' +
                         '<td>' + ((it.brand || '').trim() || 'Unbranded') + '</td>' +
                         '<td>' + ((it.specification || '').trim() || 'Standard configuration') + '</td>' +
-                        '<td>' + (it.unit || '') + '</td>' +
-                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary borrow-picker-select" data-id="' + it.id + '">Choose</button></td>' +
+                        '<td>' + (it.unit || '') + '<div class="text-muted small">' + availableLabel(it) + '</div></td>' +
+                        '<td>' + (it.isSerialized ? 'Yes' : 'No') + '</td>' +
+                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary borrow-picker-select" data-id="' + it.id + '"' + (Number(it.availableQuantity || 0) <= 0 ? ' disabled' : '') + '>Choose</button></td>' +
                         '</tr>';
                 }).join('');
             }
@@ -312,7 +375,7 @@
                 tr.className = 'borrow-item-row';
                 tr.innerHTML =
                     '<td class="align-top"><div class="d-flex gap-2 mb-1"><input type="hidden" class="borrow-item-id" name="Items[0].InventoryItemId" /><input class="form-control form-control-sm borrow-item-description" name="Items[0].Description" readonly /><button type="button" class="btn btn-sm btn-outline-secondary borrow-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].Description" data-valmsg-replace="true"></span></td>' +
-                    '<td class="align-top"><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
+                    '<td class="align-top"><input class="form-control form-control-sm borrow-qty" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].LocationVenue" /><span class="text-danger small" data-valmsg-for="Items[0].LocationVenue" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top"><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
                     '<td class="align-top p-2 smrs-schedule-cell">' +
@@ -382,7 +445,27 @@
                     if (descInput && selectedItem) {
                         descInput.value = itemSummary(selectedItem);
                     }
+                    syncQuantityLimit(activeRow);
+                    validateQuantities();
                     closePicker();
+                });
+            }
+
+            body.addEventListener('input', function (e) {
+                if (e.target.closest('.borrow-qty')) {
+                    var row = e.target.closest('tr.borrow-item-row');
+                    if (row) syncQuantityLimit(row);
+                    validateQuantities();
+                }
+            });
+
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    validateQuantities();
+                    if (!form.checkValidity()) {
+                        e.preventDefault();
+                        form.reportValidity();
+                    }
                 });
             }
 
@@ -391,6 +474,11 @@
                     if (e.target === modal) closePicker();
                 });
             }
+
+            loadItems().then(function () {
+                body.querySelectorAll('tr.borrow-item-row').forEach(syncQuantityLimit);
+                validateQuantities();
+            });
         })();
     </script>
 }

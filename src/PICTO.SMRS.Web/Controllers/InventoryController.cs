@@ -31,7 +31,7 @@ public class InventoryController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? q, string? column, string? sort, string? dir, CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(string? q, string? column, bool lowStock, string? sort, string? dir, CancellationToken cancellationToken)
     {
         var canManage = (await _auth.AuthorizeAsync(User, SmrsPolicies.InventoryManagement)).Succeeded;
         ViewData["CanManageInventory"] = canManage;
@@ -45,8 +45,12 @@ public class InventoryController : Controller
             _db,
             list.Select(i => i.Id).ToList(),
             cancellationToken);
+        var mappedRows = list.Select(i => MapToRow(i, unavailableByItemId.GetValueOrDefault(i.Id)));
+        if (lowStock)
+            mappedRows = mappedRows.Where(i => i.IsLowStock);
+
         var rows = ApplySort(
-            list.Select(i => MapToRow(i, unavailableByItemId.GetValueOrDefault(i.Id))),
+            mappedRows,
             sortBy,
             sortDir).ToList();
 
@@ -57,6 +61,7 @@ public class InventoryController : Controller
             ColumnOptions = BuildColumnOptions(string.IsNullOrWhiteSpace(column) ? "all" : column.Trim().ToLowerInvariant()),
             SortBy = sortBy,
             SortDirection = sortDir,
+            LowStockOnly = lowStock,
             Items = rows
         });
     }

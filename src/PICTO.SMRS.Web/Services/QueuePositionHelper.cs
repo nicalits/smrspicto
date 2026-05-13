@@ -43,7 +43,7 @@ public static class QueuePositionHelper
     {
         return status switch
         {
-            RequisitionStatus.InQueue when queuePosition.HasValue => $"In Que#{queuePosition.Value}",
+            RequisitionStatus.InQueue when queuePosition.HasValue => $"In Queue #{queuePosition.Value}",
             RequisitionStatus.InQueue => "In Queue",
             RequisitionStatus.Pending => "Pending",
             RequisitionStatus.Approved => "Approved",
@@ -56,7 +56,7 @@ public static class QueuePositionHelper
     {
         return status switch
         {
-            BorrowStatus.InQueue when queuePosition.HasValue => $"In Que#{queuePosition.Value}",
+            BorrowStatus.InQueue when queuePosition.HasValue => $"In Queue #{queuePosition.Value}",
             BorrowStatus.InQueue => "In Queue",
             BorrowStatus.Pending => "Pending",
             BorrowStatus.Approved => "Approved",

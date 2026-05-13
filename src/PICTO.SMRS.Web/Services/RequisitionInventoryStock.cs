@@ -7,6 +7,13 @@ namespace PICTO.SMRS.Web.Services;
 
 public static class RequisitionInventoryStock
 {
+    public static IReadOnlyList<string> ParseSerialNumbers(string? raw) =>
+        (raw ?? string.Empty)
+            .Split(new[] { "\r\n", "\n", "\r", ",", ";" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToList();
+
     public static async Task<string?> ValidateNewRequisitionStockAsync(
         ApplicationDbContext db,
         RequisitionItemType requisitionItemType,
@@ -18,8 +25,8 @@ public static class RequisitionInventoryStock
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
 
         var duplicateSerial = lines
-            .Where(l => !string.IsNullOrWhiteSpace(l.SerialNo))
-            .GroupBy(l => (l.InventoryItemId, Serial: l.SerialNo!.Trim()))
+            .SelectMany(l => ParseSerialNumbers(l.SerialNo).Select(sn => (l.InventoryItemId, Serial: sn)))
+            .GroupBy(x => x)
             .FirstOrDefault(g => g.Count() > 1);
         if (duplicateSerial is not null)
             return "The same serial number cannot appear twice on one requisition.";
@@ -50,25 +57,34 @@ public static class RequisitionInventoryStock
             var inv = invItems.Single(i => i.Id == line.InventoryItemId);
             if (inv.IsSerialized)
             {
-                if (string.IsNullOrWhiteSpace(line.SerialNo))
-                    return $"Serial number is required for \"{inv.ItemName}\".";
+                var requestedSerials = ParseSerialNumbers(line.SerialNo);
+                if (requestedSerials.Count != line.Qty)
+                    return $"Serialized item \"{inv.ItemName}\" requires {line.Qty} serial number(s).";
 
-                var sn = line.SerialNo.Trim();
-                var serialExists = await db.InventoryItemSerials
-                    .AnyAsync(s => s.InventoryItemId == inv.Id && s.SerialNumber == sn, cancellationToken);
-                if (!serialExists)
-                    return $"Serial \"{sn}\" is not in stock for \"{inv.ItemName}\".";
+                var unavailableSerials = await db.RequisitionRecordItems
+                    .AsNoTracking()
+                    .Where(i => i.InventoryItemId == inv.Id
+                        && i.SerialNo != null
+                        && i.RequisitionRecord != null
+                        && (i.RequisitionRecord.Status == RequisitionStatus.InQueue
+                            || i.RequisitionRecord.Status == RequisitionStatus.Pending
+                            || i.RequisitionRecord.Status == RequisitionStatus.Approved))
+                    .Select(i => i.SerialNo!)
+                    .ToListAsync(cancellationToken);
+                var unavailableSet = unavailableSerials
+                    .SelectMany(ParseSerialNumbers)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                var taken = await (
-                    from ri in db.RequisitionRecordItems
-                    join r in db.RequisitionRecords on ri.RequisitionRecordId equals r.Id
-                    where (r.Status == RequisitionStatus.InQueue || r.Status == RequisitionStatus.Pending || r.Status == RequisitionStatus.Approved)
-                          && ri.InventoryItemId == inv.Id
-                          && ri.SerialNo != null
-                          && ri.SerialNo == sn
-                    select ri).AnyAsync(cancellationToken);
-                if (taken)
-                    return $"Serial \"{sn}\" is already on another active requisition.";
+                foreach (var sn in requestedSerials)
+                {
+                    var serialExists = await db.InventoryItemSerials
+                        .AnyAsync(s => s.InventoryItemId == inv.Id && s.SerialNumber == sn, cancellationToken);
+                    if (!serialExists)
+                        return $"Serial \"{sn}\" is not in stock for \"{inv.ItemName}\".";
+
+                    if (unavailableSet.Contains(sn))
+                        return $"Serial \"{sn}\" is already on another active requisition.";
+                }
             }
         }
 
@@ -84,7 +100,11 @@ public static class RequisitionInventoryStock
         var invById = await db.InventoryItems
             .Where(i => itemIds.Contains(i.Id))
             .ToDictionaryAsync(i => i.Id, cancellationToken);
-        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(db, itemIds, cancellationToken);
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
+            db,
+            itemIds,
+            cancellationToken,
+            excludeRequisitionRecordId: requisition.Id);
         var requestedByItemId = requisition.Items
             .GroupBy(i => i.InventoryItemId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Qty));
@@ -105,28 +125,35 @@ public static class RequisitionInventoryStock
 
             if (inv.IsSerialized)
             {
-                if (string.IsNullOrWhiteSpace(line.SerialNo))
-                    return $"Serial number is required to finalize \"{inv.ItemName}\".";
+                var requestedSerials = ParseSerialNumbers(line.SerialNo);
+                if (requestedSerials.Count != line.Qty)
+                    return $"Serialized item \"{inv.ItemName}\" requires {line.Qty} serial number(s) to finalize.";
 
-                var sn = line.SerialNo.Trim();
-                var serialEntity = await db.InventoryItemSerials
-                    .FirstOrDefaultAsync(
-                        s => s.InventoryItemId == inv.Id && s.SerialNumber == sn,
-                        cancellationToken);
-                if (serialEntity is null)
-                    return $"Serial \"{sn}\" was not found for \"{inv.ItemName}\".";
+                var unavailableSerials = await db.RequisitionRecordItems
+                    .AsNoTracking()
+                    .Where(i => i.InventoryItemId == inv.Id
+                        && i.SerialNo != null
+                        && i.RequisitionRecord != null
+                        && i.RequisitionRecord.Status == RequisitionStatus.Approved
+                        && i.RequisitionRecord.MarkedInUseAt != null)
+                    .Select(i => i.SerialNo!)
+                    .ToListAsync(cancellationToken);
+                var unavailableSet = unavailableSerials
+                    .SelectMany(ParseSerialNumbers)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                var taken = await (
-                    from ri in db.RequisitionRecordItems
-                    join r in db.RequisitionRecords on ri.RequisitionRecordId equals r.Id
-                    where r.Status == RequisitionStatus.Approved
-                          && r.MarkedInUseAt != null
-                          && ri.InventoryItemId == inv.Id
-                          && ri.SerialNo != null
-                          && ri.SerialNo == sn
-                    select ri).AnyAsync(cancellationToken);
-                if (taken)
-                    return $"Serial \"{sn}\" is already issued for \"{inv.ItemName}\".";
+                foreach (var sn in requestedSerials)
+                {
+                    var serialEntity = await db.InventoryItemSerials
+                        .FirstOrDefaultAsync(
+                            s => s.InventoryItemId == inv.Id && s.SerialNumber == sn,
+                            cancellationToken);
+                    if (serialEntity is null)
+                        return $"Serial \"{sn}\" was not found for \"{inv.ItemName}\".";
+
+                    if (unavailableSet.Contains(sn))
+                        return $"Serial \"{sn}\" is already issued for \"{inv.ItemName}\".";
+                }
             }
         }
 

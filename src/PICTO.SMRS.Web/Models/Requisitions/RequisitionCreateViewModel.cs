@@ -15,7 +15,7 @@ public class RequisitionLineItemViewModel
     public int InventoryItemId { get; set; }
 
     [Display(Name = "Serial No.")]
-    [StringLength(200)]
+    [StringLength(1000)]
     public string? SerialNo { get; set; }
 
     [Range(1, 999999)]

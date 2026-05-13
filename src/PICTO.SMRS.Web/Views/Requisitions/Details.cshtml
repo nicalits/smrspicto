@@ -11,14 +11,6 @@
     var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
     var queuePositions = ViewData["QueuePositions"] as Dictionary<int, int> ?? new Dictionary<int, int>();
     var statusDisplay = QueuePositionHelper.FormatQueueStatus(Model.Status, queuePositions.GetValueOrDefault(Model.Id));
-    var badgeClass = Model.Status switch
-    {
-        RequisitionStatus.InQueue => "text-bg-info",
-        RequisitionStatus.Pending => "text-bg-warning text-dark",
-        RequisitionStatus.Approved => "text-bg-success",
-        RequisitionStatus.Rejected => "text-bg-danger",
-        _ => "text-bg-light text-dark border"
-    };
 }
 
 <div class="smrs-page">
@@ -28,7 +20,7 @@
                 <h1 class="h3 text-navy mb-1">Requisition @rsNo</h1>
                 <p class="text-muted small mb-0">Submitted request details and approval status.</p>
             </div>
-            <span class="badge @badgeClass fs-6">@statusDisplay</span>
+            <span>@statusDisplay</span>
         </header>
 
         @if (TempData["StatusMessage"] is string ok)

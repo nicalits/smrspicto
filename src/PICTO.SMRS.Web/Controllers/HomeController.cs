@@ -136,10 +136,12 @@ public class HomeController(ApplicationDbContext db) : Controller
                 .Where(i => i.SupplyGroup == SupplyGroup.ItSupplies)
                 .Sum(i => Math.Max(0, i.Quantity - unavailableByItemId.GetValueOrDefault(i.Id))),
             ItUnitsUsed = await UnitsUsedForGroupAsync(SupplyGroup.ItSupplies),
+            ItLowStockItems = lowStockItems.Count(i => i.SupplyGroup == SupplyGroup.ItSupplies),
             OfficeAvailableUnits = inventorySnapshot
                 .Where(i => i.SupplyGroup == SupplyGroup.OfficeSupplies)
                 .Sum(i => Math.Max(0, i.Quantity - unavailableByItemId.GetValueOrDefault(i.Id))),
             OfficeUnitsUsed = await UnitsUsedForGroupAsync(SupplyGroup.OfficeSupplies),
+            OfficeLowStockItems = lowStockItems.Count(i => i.SupplyGroup == SupplyGroup.OfficeSupplies),
             TotalUnits = totalUnits,
             AvailableUnits = availableUnits,
             UnitsUsed = unitsUsed,

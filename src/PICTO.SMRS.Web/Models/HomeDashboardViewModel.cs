@@ -51,9 +51,13 @@ public sealed class HomeDashboardViewModel
 
     public int ItUnitsUsed { get; init; }
 
+    public int ItLowStockItems { get; init; }
+
     public int OfficeAvailableUnits { get; init; }
 
     public int OfficeUnitsUsed { get; init; }
+
+    public int OfficeLowStockItems { get; init; }
 
     public int TotalUnits { get; init; }
 

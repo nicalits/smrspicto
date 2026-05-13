@@ -45,21 +45,13 @@
                             @foreach (var row in Model)
                             {
                                 var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
-                                var badgeClass = row.Status switch
-                                {
-                                    BorrowStatus.InQueue => "text-bg-info",
-                                    BorrowStatus.Pending => "text-bg-warning text-dark",
-                                    BorrowStatus.Approved => "text-bg-success",
-                                    BorrowStatus.Rejected => "text-bg-danger",
-                                    _ => "text-bg-light text-dark border"
-                                };
                                 <tr>
                                     <td>
                                         <a asp-action="Details" asp-route-id="@row.Id" class="text-decoration-none fw-semibold">@(string.IsNullOrWhiteSpace(row.RfNo) ? "—" : row.RfNo)</a>
                                     </td>
                                     <td>@row.SlipDate.ToString("yyyy-MM-dd")</td>
                                     <td>@row.ItemCount</td>
-                                    <td><span class="badge @badgeClass">@statusDisplay</span></td>
+                                    <td>@statusDisplay</td>
                                     <td>
                                         @if (row.IssuedAt is { } issuedAt)
                                         {

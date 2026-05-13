@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.EntityFrameworkCore;
 using PICTO.SMRS.Web.Data;
 using PICTO.SMRS.Web.Models.Borrow;
@@ -24,6 +26,7 @@ public class BorrowApprovalBadgeViewComponent : ViewComponent
         if (count == 0)
             return Content(string.Empty);
 
-        return Content($"<span class=\"badge rounded-pill bg-danger smrs-sidenav-approval-badge\">{count}</span>");
+        return new HtmlContentViewComponentResult(
+            new HtmlString($"<span class=\"badge rounded-pill bg-danger smrs-sidenav-approval-badge\">{count}</span>"));
     }
 }

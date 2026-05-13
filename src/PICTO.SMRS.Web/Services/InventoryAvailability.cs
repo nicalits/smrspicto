@@ -10,7 +10,9 @@ public static class InventoryAvailability
     public static async Task<Dictionary<int, int>> GetUnavailableQuantitiesAsync(
         ApplicationDbContext db,
         IReadOnlyCollection<int> itemIds,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        int? excludeRequisitionRecordId = null,
+        int? excludeBorrowRecordId = null)
     {
         if (itemIds.Count == 0)
             return new Dictionary<int, int>();
@@ -19,6 +21,7 @@ public static class InventoryAvailability
             .AsNoTracking()
             .Where(i => itemIds.Contains(i.InventoryItemId)
                 && i.RequisitionRecord != null
+                && (!excludeRequisitionRecordId.HasValue || i.RequisitionRecordId != excludeRequisitionRecordId.Value)
                 && (i.RequisitionRecord.Status == RequisitionStatus.InQueue
                     || i.RequisitionRecord.Status == RequisitionStatus.Pending
                     || (i.RequisitionRecord.Status == RequisitionStatus.Approved
@@ -32,6 +35,7 @@ public static class InventoryAvailability
             .Where(i => i.InventoryItemId.HasValue
                 && itemIds.Contains(i.InventoryItemId.Value)
                 && i.BorrowRecord != null
+                && (!excludeBorrowRecordId.HasValue || i.BorrowRecordId != excludeBorrowRecordId.Value)
                 && (i.BorrowRecord.Status == BorrowStatus.InQueue
                     || i.BorrowRecord.Status == BorrowStatus.Pending
                     || i.BorrowRecord.Status == BorrowStatus.Approved))

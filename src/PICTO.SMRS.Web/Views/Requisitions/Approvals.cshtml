@@ -47,12 +47,6 @@
                             @foreach (var row in Model)
                             {
                                 var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
-                                var badgeClass = row.Status switch
-                                {
-                                    RequisitionStatus.InQueue => "text-bg-info",
-                                    RequisitionStatus.Pending => "text-bg-warning text-dark",
-                                    _ => "text-bg-light text-dark border"
-                                };
                                 <tr>
                                     <td>@row.Date.ToString("yyyy-MM-dd")</td>
                                     <td>@row.RequestorName</td>
@@ -60,11 +54,7 @@
                                     <td>@(row.ItemType == RequisitionItemType.ItSupplies ? "IT" : "Office")</td>
                                     <td>@row.ItemCount</td>
                                     <td>
-                                        <span class="badge @badgeClass">@statusDisplay</span>
-                                        @if (row.Status == RequisitionStatus.Pending && !string.IsNullOrWhiteSpace(row.PendingReason))
-                                        {
-                                            <span class="d-block small text-muted mt-1" title="@row.PendingReason">@row.PendingReason</span>
-                                        }
+                                        @statusDisplay
                                     </td>
                                     <td class="text-end">
                                         <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">View</a>

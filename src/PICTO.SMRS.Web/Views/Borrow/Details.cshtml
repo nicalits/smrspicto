@@ -9,14 +9,6 @@
     var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
     var queuePositions = ViewData["QueuePositions"] as Dictionary<int, int> ?? new Dictionary<int, int>();
     var statusDisplay = QueuePositionHelper.FormatQueueStatus(Model.Status, queuePositions.GetValueOrDefault(Model.Id));
-    var badgeClass = Model.Status switch
-    {
-        BorrowStatus.InQueue => "text-bg-info",
-        BorrowStatus.Pending => "text-bg-warning text-dark",
-        BorrowStatus.Approved => "text-bg-success",
-        BorrowStatus.Rejected => "text-bg-danger",
-        _ => "text-bg-light text-dark border"
-    };
 }
 
 <div class="smrs-page">
@@ -26,7 +18,7 @@
                 <h1 class="h3 text-navy mb-1">Borrow @rfNo</h1>
                 <p class="text-muted small mb-0">Submitted borrow request details and encoder decision.</p>
             </div>
-            <span class="badge @badgeClass fs-6">@statusDisplay</span>
+            <span>@statusDisplay</span>
         </header>
 
         @if (TempData["StatusMessage"] is string ok)

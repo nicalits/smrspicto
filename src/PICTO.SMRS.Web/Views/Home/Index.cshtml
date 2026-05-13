@@ -70,29 +70,29 @@
         <article class="smrs-card smrs-card--page smrs-card--tight">
             <h2 class="smrs-dashboard-group-title">Inventory overview</h2>
             <div class="smrs-dashboard-kpis">
-                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="IT Supplies" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="IT Supplies" asp-route-lowStock="true" asp-route-sort="available" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                     <span class="smrs-dashboard-kpi__label">IT Supplies</span>
                     <div class="d-flex justify-content-between gap-3">
                         <div>
-                            <strong class="smrs-dashboard-kpi__value">@Model.ItAvailableUnits</strong>
-                            <span class="d-block small text-muted">Available</span>
-                        </div>
-                        <div class="text-end">
                             <strong class="smrs-dashboard-kpi__value">@Model.ItUnitsUsed</strong>
                             <span class="d-block small text-muted">In use</span>
                         </div>
+                        <div class="text-end">
+                            <strong class="smrs-dashboard-kpi__value">@Model.ItLowStockItems</strong>
+                            <span class="d-block small text-muted">Low in stock</span>
+                        </div>
                     </div>
                 </a>
-                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="Office Supplies" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
+                <a asp-controller="Inventory" asp-action="Index" asp-route-column="supplygroup" asp-route-q="Office Supplies" asp-route-lowStock="true" asp-route-sort="available" class="smrs-dashboard-kpi smrs-dashboard-kpi--link">
                     <span class="smrs-dashboard-kpi__label">Office Supplies</span>
                     <div class="d-flex justify-content-between gap-3">
                         <div>
-                            <strong class="smrs-dashboard-kpi__value">@Model.OfficeAvailableUnits</strong>
-                            <span class="d-block small text-muted">Available</span>
-                        </div>
-                        <div class="text-end">
                             <strong class="smrs-dashboard-kpi__value">@Model.OfficeUnitsUsed</strong>
                             <span class="d-block small text-muted">In use</span>
+                        </div>
+                        <div class="text-end">
+                            <strong class="smrs-dashboard-kpi__value">@Model.OfficeLowStockItems</strong>
+                            <span class="d-block small text-muted">Low in stock</span>
                         </div>
                     </div>
                 </a>

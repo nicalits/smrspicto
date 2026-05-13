@@ -103,15 +103,7 @@ public class RequisitionsController : Controller
             MrIcsPosition = string.IsNullOrWhiteSpace(model.MrIcsPosition) ? null : model.MrIcsPosition.Trim(),
             Status = RequisitionStatus.InQueue,
             CreatedAt = DateTimeOffset.UtcNow,
-            Items = model.Items.Select(i => new RequisitionRecordItem
-            {
-                InventoryItemId = i.InventoryItemId,
-                SerialNo = string.IsNullOrWhiteSpace(i.SerialNo) ? null : i.SerialNo.Trim(),
-                Qty = i.Qty,
-                Unit = i.Unit.Trim(),
-                Purpose = i.Purpose.Trim(),
-                RfNo = string.IsNullOrWhiteSpace(i.RfNo) ? null : i.RfNo.Trim()
-            }).ToList()
+            Items = []
         };
 
         await using (var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken))
@@ -127,6 +119,7 @@ public class RequisitionsController : Controller
             }
 
             _db.RequisitionRecords.Add(requisition);
+            requisition.Items = await BuildRecordItemsAsync(model.Items, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
@@ -255,15 +248,7 @@ public class RequisitionsController : Controller
             requisition.RequestorDivision = model.RequestorDivision.Trim();
             requisition.Office = string.IsNullOrWhiteSpace(model.Office) ? null : model.Office.Trim();
             requisition.MrIcsPosition = string.IsNullOrWhiteSpace(model.MrIcsPosition) ? null : model.MrIcsPosition.Trim();
-            requisition.Items = model.Items.Select(i => new RequisitionRecordItem
-            {
-                InventoryItemId = i.InventoryItemId,
-                SerialNo = string.IsNullOrWhiteSpace(i.SerialNo) ? null : i.SerialNo.Trim(),
-                Qty = i.Qty,
-                Unit = i.Unit.Trim(),
-                Purpose = i.Purpose.Trim(),
-                RfNo = string.IsNullOrWhiteSpace(i.RfNo) ? null : i.RfNo.Trim()
-            }).ToList();
+            requisition.Items = await BuildRecordItemsAsync(model.Items, cancellationToken);
 
             await _db.SaveChangesAsync(cancellationToken);
             await tx.CommitAsync(cancellationToken);
@@ -719,10 +704,16 @@ public class RequisitionsController : Controller
     public async Task<IActionResult> InventoryItems(RequisitionItemType type, CancellationToken cancellationToken)
     {
         var group = type == RequisitionItemType.OfficeSupplies ? SupplyGroup.OfficeSupplies : SupplyGroup.ItSupplies;
-        var items = await _db.InventoryItems
+        var inventory = await _db.InventoryItems
             .AsNoTracking()
             .Where(i => i.SupplyGroup == group)
             .OrderBy(i => i.ItemName)
+            .ToListAsync(cancellationToken);
+        var unavailableByItemId = await InventoryAvailability.GetUnavailableQuantitiesAsync(
+            _db,
+            inventory.Select(i => i.Id).ToList(),
+            cancellationToken);
+        var items = inventory
             .Select(i => new
             {
                 id = i.Id,
@@ -736,17 +727,58 @@ public class RequisitionsController : Controller
                     string.IsNullOrWhiteSpace(i.Description) ? i.Specifications : i.Description
                 }.Where(part => !string.IsNullOrWhiteSpace(part))),
                 isSerialized = i.IsSerialized,
-                unit = i.Unit.GetDisplayName()
+                unit = i.Unit.GetDisplayName(),
+                availableQuantity = Math.Max(0, i.Quantity - unavailableByItemId.GetValueOrDefault(i.Id))
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Json(items);
+    }
+
+    private async Task<List<RequisitionRecordItem>> BuildRecordItemsAsync(
+        IReadOnlyList<RequisitionLineItemViewModel> lines,
+        CancellationToken cancellationToken)
+    {
+        var itemIds = lines.Select(i => i.InventoryItemId).Distinct().ToList();
+        var inventoryById = await _db.InventoryItems
+            .AsNoTracking()
+            .Where(i => itemIds.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, cancellationToken);
+        var recordItems = new List<RequisitionRecordItem>();
+
+        foreach (var line in lines)
+        {
+            if (!inventoryById.TryGetValue(line.InventoryItemId, out var inventoryItem))
+                continue;
+
+            if (inventoryItem.IsSerialized)
+            {
+                foreach (var serial in RequisitionInventoryStock.ParseSerialNumbers(line.SerialNo))
+                    recordItems.Add(BuildRecordItem(line, serial, 1));
+            }
+            else
+            {
+                recordItems.Add(BuildRecordItem(line, null, line.Qty));
+            }
+        }
+
+        return recordItems;
+
+        static RequisitionRecordItem BuildRecordItem(RequisitionLineItemViewModel line, string? serialNo, int qty) => new()
+        {
+            InventoryItemId = line.InventoryItemId,
+            SerialNo = serialNo,
+            Qty = qty,
+            Unit = line.Unit.Trim(),
+            Purpose = line.Purpose.Trim(),
+            RfNo = string.IsNullOrWhiteSpace(line.RfNo) ? null : line.RfNo.Trim()
+        };
     }
 
     [HttpGet]
     public async Task<IActionResult> InventoryItemSerials(int id, CancellationToken cancellationToken)
     {
-        var unavailableSerials = _db.RequisitionRecordItems
+        var unavailableSerials = await _db.RequisitionRecordItems
             .AsNoTracking()
             .Where(i => i.InventoryItemId == id
                 && i.SerialNo != null
@@ -754,16 +786,20 @@ public class RequisitionsController : Controller
                 && (i.RequisitionRecord.Status == RequisitionStatus.InQueue
                     || i.RequisitionRecord.Status == RequisitionStatus.Pending
                     || i.RequisitionRecord.Status == RequisitionStatus.Approved))
-            .Select(i => i.SerialNo!);
+            .Select(i => i.SerialNo!)
+            .ToListAsync(cancellationToken);
+        var unavailableSet = unavailableSerials
+            .SelectMany(RequisitionInventoryStock.ParseSerialNumbers)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var serials = await _db.InventoryItemSerials
             .AsNoTracking()
-            .Where(s => s.InventoryItemId == id && !unavailableSerials.Contains(s.SerialNumber))
+            .Where(s => s.InventoryItemId == id)
             .OrderBy(s => s.SerialNumber)
             .Select(s => s.SerialNumber)
             .ToListAsync(cancellationToken);
 
-        return Json(serials);
+        return Json(serials.Where(s => !unavailableSet.Contains(s)).ToList());
     }
 
     [HttpPost]

@@ -12,7 +12,7 @@
 <div class="smrs-page smrs-page--wide">
     <div class="smrs-card smrs-card--page smrs-card--tight">
         <section class="smrs-section">
-            <form asp-action="@formAction" method="post" novalidate>
+            <form asp-action="@formAction" method="post" id="rqForm" novalidate>
                 @Html.AntiForgeryToken()
                 @if (editId is int id)
                 {
@@ -97,7 +97,7 @@
                                         <span asp-validation-for="Items[i].SerialNo" class="text-danger small"></span>
                                     </td>
                                     <td>
-                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm" type="number" min="1" />
+                                        <input asp-for="Items[i].Qty" class="form-control form-control-sm rq-qty" type="number" min="1" />
                                         <span asp-validation-for="Items[i].Qty" class="text-danger small"></span>
                                     </td>
                                     <td>
@@ -174,15 +174,16 @@
             <table class="table table-sm table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 25%;">Item</th>
-                        <th style="width: 18%;">Brand</th>
-                        <th style="width: 35%;">Specification</th>
+                        <th style="width: 23%;">Item</th>
+                        <th style="width: 17%;">Brand</th>
+                        <th style="width: 30%;">Specification</th>
                         <th style="width: 10%;">Unit</th>
-                        <th style="width: 12%;"></th>
+                        <th style="width: 10%;">Serialized</th>
+                        <th style="width: 10%;"></th>
                     </tr>
                 </thead>
                 <tbody id="rqItemPickerBody">
-                    <tr><td colspan="5" class="text-muted small">No items found.</td></tr>
+                    <tr><td colspan="6" class="text-muted small">No items found.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -193,6 +194,7 @@
     <partial name="_ValidationScriptsPartial" />
     <script>
         (function () {
+            var form = document.getElementById('rqForm');
             var body = document.getElementById('rqItemsBody');
             var addBtn = document.getElementById('rqAddRow');
             if (!body || !addBtn) return;
@@ -220,6 +222,7 @@
             }
 
             var itemsCache = { type: null, items: [] };
+            var serialsCache = {};
 
             function getTypeSelect() {
                 return document.querySelector('select[name="ItemType"]');
@@ -270,12 +273,18 @@
                 }).join(' - ');
             }
 
+            function availableLabel(item) {
+                if (!item) return '';
+                var available = Number(item.availableQuantity || 0);
+                return available + ' available';
+            }
+
             function syncRowSummary(row, items) {
                 var summary = row.querySelector('.rq-item-summary');
                 var hidden = row.querySelector('.rq-item-id');
                 if (!summary || !hidden) return;
                 var selectedItem = getItemById(items, hidden.value);
-                summary.value = selectedItem ? itemSummary(selectedItem) : '';
+                summary.value = selectedItem ? itemSummary(selectedItem) + ' (' + availableLabel(selectedItem) + ')' : '';
             }
 
             async function syncAllSelects() {
@@ -284,8 +293,101 @@
                 var items = await loadItemsForType(typeVal);
                 body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
                     syncRowSummary(row, items);
+                    syncQuantityLimit(row);
                 });
+                validateQuantities();
                 renderPickerRows(items);
+            }
+
+            function syncQuantityLimit(row) {
+                var itemIdInput = row.querySelector('.rq-item-id');
+                var qty = row.querySelector('.rq-qty');
+                if (!itemIdInput || !qty) return;
+
+                var selectedItem = getItemById(itemsCache.items, itemIdInput.value);
+                if (!selectedItem) {
+                    qty.removeAttribute('max');
+                    qty.setCustomValidity('');
+                    return;
+                }
+
+                var available = Math.max(0, Number(selectedItem.availableQuantity || 0));
+                qty.max = String(available);
+                qty.title = 'Available quantity: ' + available;
+                clampRowQuantity(row);
+            }
+
+            function clampRowQuantity(row) {
+                var qty = row.querySelector('.rq-qty');
+                if (!qty || !qty.max) return;
+
+                var max = Number(qty.max || 0);
+                var requested = Number(qty.value || 0);
+                if (requested > max) {
+                    qty.value = String(max);
+                }
+            }
+
+            function validateQuantities() {
+                var requestedByItem = {};
+                body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
+                    var idInput = row.querySelector('.rq-item-id');
+                    var qtyInput = row.querySelector('.rq-qty');
+                    if (!idInput || !qtyInput) return;
+                    qtyInput.setCustomValidity('');
+
+                    var itemId = idInput.value || '0';
+                    var selectedItem = getItemById(itemsCache.items, itemId);
+                    if (!selectedItem) return;
+
+                    var qty = Number(qtyInput.value || 0);
+                    requestedByItem[itemId] = (requestedByItem[itemId] || 0) + qty;
+                });
+
+                body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
+                    var idInput = row.querySelector('.rq-item-id');
+                    var qtyInput = row.querySelector('.rq-qty');
+                    if (!idInput || !qtyInput) return;
+
+                    var selectedItem = getItemById(itemsCache.items, idInput.value || '0');
+                    if (!selectedItem) return;
+
+                    var available = Math.max(0, Number(selectedItem.availableQuantity || 0));
+                    var requested = requestedByItem[idInput.value || '0'] || 0;
+                    if (requested > available) {
+                        qtyInput.setCustomValidity('Only ' + available + ' available for ' + selectedItem.name + '.');
+                    }
+                });
+            }
+
+            async function loadSerialsForItem(itemId) {
+                if (serialsCache[itemId]) return serialsCache[itemId];
+
+                try {
+                    var res = await fetch('@Url.Action("InventoryItemSerials")' + '?id=' + encodeURIComponent(itemId), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    serialsCache[itemId] = res.ok ? await res.json() : [];
+                } catch (e) {
+                    serialsCache[itemId] = [];
+                }
+
+                return serialsCache[itemId];
+            }
+
+            async function syncSerializedSerialsForItem(itemId) {
+                var serials = await loadSerialsForItem(itemId);
+                var offset = 0;
+                body.querySelectorAll('tr.rq-item-row').forEach(function (row) {
+                    var itemIdInput = row.querySelector('.rq-item-id');
+                    var serial = row.querySelector('.rq-serial');
+                    var qty = row.querySelector('.rq-qty');
+                    if (!itemIdInput || !serial || !qty || itemIdInput.value !== String(itemId)) return;
+
+                    var requested = Math.max(0, Number(qty.value || 0));
+                    serial.value = serials.slice(offset, offset + requested).join(', ');
+                    offset += requested;
+                });
             }
 
             async function syncSerialAndUnit(row) {
@@ -308,20 +410,7 @@
                     return;
                 }
 
-                try {
-                    var res = await fetch('@Url.Action("InventoryItemSerials")' + '?id=' + encodeURIComponent(itemIdInput.value), {
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    if (!res.ok) return;
-                    var serials = await res.json();
-                    if (Array.isArray(serials) && serials.length > 0) {
-                        serial.value = String(serials[0] || '');
-                    } else {
-                        serial.value = '';
-                    }
-                } catch (e) {
-                    serial.value = '';
-                }
+                await syncSerializedSerialsForItem(itemIdInput.value);
             }
 
             function makeRow() {
@@ -330,7 +419,7 @@
                 tr.innerHTML =
                     '<td><input type="hidden" class="rq-item-id" name="Items[0].InventoryItemId" value="0" /><div class="d-flex gap-2 mb-1"><input class="form-control form-control-sm rq-item-summary" placeholder="No item selected" readonly /><button type="button" class="btn btn-sm btn-outline-secondary rq-open-item-picker text-nowrap">Select item</button></div><span class="text-danger small" data-valmsg-for="Items[0].InventoryItemId" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm rq-serial" name="Items[0].SerialNo" readonly /><span class="text-danger small" data-valmsg-for="Items[0].SerialNo" data-valmsg-replace="true"></span></td>' +
-                    '<td><input class="form-control form-control-sm" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
+                    '<td><input class="form-control form-control-sm rq-qty" type="number" min="1" value="1" name="Items[0].Qty" /><span class="text-danger small" data-valmsg-for="Items[0].Qty" data-valmsg-replace="true"></span></td>' +
                     '<td><select class="form-select form-select-sm rq-unit-select" name="Items[0].Unit"><option value="">Select unit…</option>@foreach (var unit in Enum.GetValues<InventoryUnit>()) {<option value="@unit.GetDisplayName()">@unit.GetDisplayName()</option>}</select><span class="text-danger small" data-valmsg-for="Items[0].Unit" data-valmsg-replace="true"></span></td>' +
                     '<td><input class="form-control form-control-sm" name="Items[0].Purpose" /><span class="text-danger small" data-valmsg-for="Items[0].Purpose" data-valmsg-replace="true"></span></td>' +
                     '<td><div class="d-flex gap-2"><input class="form-control form-control-sm" name="Items[0].RfNo" placeholder="00-0000" maxlength="7" inputmode="numeric" style="width: 120px;" /><button type="button" class="btn btn-sm btn-outline-danger rq-remove-row text-nowrap px-2" title="Remove row">Remove</button></div><span class="text-danger small" data-valmsg-for="Items[0].RfNo" data-valmsg-replace="true"></span></td>';
@@ -352,13 +441,14 @@
                         it.name || '',
                         it.brand || '',
                         specificationLabel(it),
-                        it.unit || ''
+                        it.unit || '',
+                        it.isSerialized ? 'serialized yes' : 'not serialized no'
                     ].join(' ').toLowerCase();
                     return haystack.indexOf(keyword) !== -1;
                 });
 
                 if (filtered.length === 0) {
-                    modalBody.innerHTML = '<tr><td colspan="5" class="text-muted small">No items found.</td></tr>';
+                    modalBody.innerHTML = '<tr><td colspan="6" class="text-muted small">No items found.</td></tr>';
                     return;
                 }
 
@@ -367,8 +457,9 @@
                         '<td>' + (it.name || '') + '</td>' +
                         '<td>' + ((it.brand || '').trim() || 'Unbranded') + '</td>' +
                         '<td>' + specificationLabel(it) + '</td>' +
-                        '<td>' + (it.unit || '') + '</td>' +
-                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary rq-picker-select" data-id="' + it.id + '">Choose</button></td>' +
+                        '<td>' + (it.unit || '') + '<div class="text-muted small">' + availableLabel(it) + '</div></td>' +
+                        '<td>' + (it.isSerialized ? 'Yes' : 'No') + '</td>' +
+                        '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary rq-picker-select" data-id="' + it.id + '"' + (Number(it.availableQuantity || 0) <= 0 ? ' disabled' : '') + '>Choose</button></td>' +
                         '</tr>';
                 }).join('');
             }
@@ -443,8 +534,29 @@
                     var selectedId = chooseBtn.getAttribute('data-id') || '0';
                     setItemId(activeRow, selectedId);
                     syncRowSummary(activeRow, itemsCache.items);
+                    syncQuantityLimit(activeRow);
+                    validateQuantities();
                     syncSerialAndUnit(activeRow);
                     closePicker();
+                });
+            }
+
+            body.addEventListener('input', function (e) {
+                if (e.target.closest('.rq-qty')) {
+                    var row = e.target.closest('tr.rq-item-row');
+                    if (row) clampRowQuantity(row);
+                    validateQuantities();
+                    if (row) syncSerialAndUnit(row);
+                }
+            });
+
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    validateQuantities();
+                    if (!form.checkValidity()) {
+                        e.preventDefault();
+                        form.reportValidity();
+                    }
                 });
             }
 
