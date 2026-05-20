@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PICTO.SMRS.Web.Security;
+using PICTO.SMRS.Web.Validation;
 
 namespace PICTO.SMRS.Web.Models;
 
@@ -32,7 +33,7 @@ public class CreateUserViewModel
     public string Division { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(100, ErrorMessage = "The {0} must be at least {2} characters.", MinimumLength = 8)]
+    [SmrsPassword]
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;

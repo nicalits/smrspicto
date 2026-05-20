@@ -39,7 +39,8 @@ public class HomeController(ApplicationDbContext db) : Controller
         var borrowedItems = db.BorrowRecordItems
             .AsNoTracking()
             .Where(i => i.BorrowRecord != null
-                && i.BorrowRecord.Status == BorrowStatus.Approved);
+                && i.BorrowRecord.Status == BorrowStatus.Approved
+                && i.BorrowRecord.ReturnConfirmedAt == null);
         var inventorySnapshot = await inventory
             .Select(i => new { i.Id, i.Quantity, i.SupplyGroup, i.IsSerialized, i.LowStockLevel, i.ItemName, i.Brand, i.LowStockSince })
             .ToListAsync();

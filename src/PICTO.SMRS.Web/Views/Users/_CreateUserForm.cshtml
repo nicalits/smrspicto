@@ -3,8 +3,8 @@
     var useModalCancel = ViewData["UseModalCancel"] as bool? ?? false;
 }
 
-<form asp-action="Create" method="post" novalidate>
-    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+<form asp-action="Create" method="post" id="createUserForm" class="smrs-create-user-form" novalidate>
+    <div asp-validation-summary="All" class="text-danger small mb-3" role="alert"></div>
 
     <div class="mb-3">
         <label asp-for="UserName" class="form-label"></label>
@@ -39,6 +39,9 @@
     <div class="mb-3">
         <label asp-for="Password" class="form-label"></label>
         <input asp-for="Password" class="form-control" autocomplete="new-password" />
+        <div class="form-text small text-muted">
+            At least 8 characters, including uppercase, lowercase, a number, and a symbol (e.g. ! or #).
+        </div>
         <span asp-validation-for="Password" class="text-danger small"></span>
     </div>
     <div class="mb-4">

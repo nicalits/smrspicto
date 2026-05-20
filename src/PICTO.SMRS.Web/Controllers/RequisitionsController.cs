@@ -305,9 +305,8 @@ public class RequisitionsController : Controller
         var rows = await _db.RequisitionRecords
             .AsNoTracking()
             .Include(r => r.Items)
-            .Where(r => r.Status == RequisitionStatus.Approved)
-            .OrderBy(r => r.MarkedInUseAt == null ? 0 : 1)
-            .ThenBy(r => r.CreatedAt)
+            .Where(r => r.Status == RequisitionStatus.Approved && r.MarkedInUseAt == null)
+            .OrderBy(r => r.CreatedAt)
             .Select(r => new RequisitionApprovalRowViewModel
             {
                 Id = r.Id,
@@ -672,7 +671,7 @@ public class RequisitionsController : Controller
             {
                 await tx.RollbackAsync(cancellationToken);
                 _db.ChangeTracker.Clear();
-                TempData["ErrorMessage"] = "This requisition is already recorded as in use.";
+                TempData["ErrorMessage"] = "This requisition is already recorded as issued.";
                 return RedirectToAction(nameof(Details), new { id, returnAction });
             }
 
@@ -692,7 +691,7 @@ public class RequisitionsController : Controller
             await tx.CommitAsync(cancellationToken);
         }
 
-        TempData["StatusMessage"] = "Issuance recorded; items are in use with the requestor.";
+        TempData["StatusMessage"] = "Issuance recorded; items issued to the requestor.";
 
         if (string.Equals(returnAction, nameof(Issuance), StringComparison.OrdinalIgnoreCase))
             return RedirectToAction(nameof(Issuance));

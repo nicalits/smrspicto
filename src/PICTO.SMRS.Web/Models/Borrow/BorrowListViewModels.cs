@@ -13,6 +13,10 @@ public class BorrowIndexRowViewModel
     public BorrowStatus Status { get; set; }
 
     public DateTimeOffset? IssuedAt { get; set; }
+
+    public DateTimeOffset? MarkedReturnedAt { get; set; }
+
+    public DateTimeOffset? ReturnConfirmedAt { get; set; }
 }
 
 public class BorrowApprovalRowViewModel
@@ -36,6 +40,8 @@ public class BorrowApprovalRowViewModel
     public string? RejectionReason { get; set; }
 
     public DateTimeOffset? IssuedAt { get; set; }
+
+    public DateTimeOffset? MarkedReturnedAt { get; set; }
 }
 
 public class BorrowDetailsViewModel
@@ -69,6 +75,10 @@ public class BorrowDetailsViewModel
     public DateTimeOffset? RejectedAt { get; set; }
 
     public DateTimeOffset? IssuedAt { get; set; }
+
+    public DateTimeOffset? MarkedReturnedAt { get; set; }
+
+    public DateTimeOffset? ReturnConfirmedAt { get; set; }
 
     public IReadOnlyList<BorrowDetailsItemViewModel> Items { get; set; } = [];
 }

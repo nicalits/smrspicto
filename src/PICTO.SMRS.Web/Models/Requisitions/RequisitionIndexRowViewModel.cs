@@ -14,7 +14,7 @@ public class RequisitionIndexRowViewModel
 
     public RequisitionStatus Status { get; set; }
 
-    /// <summary>Set when approved requisition was marked in use (checker).</summary>
+    /// <summary>Set when encoder recorded physical issuance.</summary>
     public DateTimeOffset? MarkedInUseAt { get; set; }
 
     public DateTimeOffset? ReceivedAt { get; set; }

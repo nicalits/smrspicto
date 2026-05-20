@@ -27,7 +27,7 @@
                                 <th>Division</th>
                                 <th>Type</th>
                                 <th>Items</th>
-                                <th>Under use</th>
+                                <th>Issuance</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
@@ -44,7 +44,7 @@
                                     <td>
                                         @if (row.MarkedInUseAt is { } at)
                                         {
-                                            <span class="badge text-bg-light text-dark border">In use</span>
+                                            <span class="badge text-bg-light text-dark border">Issued</span>
                                             <span class="text-muted small d-block">@at.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                                         }
                                         else

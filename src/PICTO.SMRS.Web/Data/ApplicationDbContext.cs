@@ -86,6 +86,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             e.Property(x => x.PendingReason).HasMaxLength(500);
             e.Property(x => x.RejectionReason).HasMaxLength(500);
             e.Property(x => x.ActionedByUserId).HasMaxLength(450);
+            e.Property(x => x.ReturnConfirmedByUserId).HasMaxLength(450);
             e.HasIndex(x => new { x.Status, x.CreatedAt });
             e.HasIndex(x => x.BorrowerUserId);
         });

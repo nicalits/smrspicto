@@ -38,7 +38,8 @@ public static class InventoryAvailability
                 && (!excludeBorrowRecordId.HasValue || i.BorrowRecordId != excludeBorrowRecordId.Value)
                 && (i.BorrowRecord.Status == BorrowStatus.InQueue
                     || i.BorrowRecord.Status == BorrowStatus.Pending
-                    || i.BorrowRecord.Status == BorrowStatus.Approved))
+                    || (i.BorrowRecord.Status == BorrowStatus.Approved
+                        && i.BorrowRecord.ReturnConfirmedAt == null)))
             .GroupBy(i => i.InventoryItemId!.Value)
             .Select(g => new { InventoryItemId = g.Key, Quantity = g.Sum(i => i.Qty) })
             .ToListAsync(cancellationToken);

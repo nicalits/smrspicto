@@ -5,7 +5,8 @@ public enum BorrowStatus
     InQueue = 1,
     Approved = 2,
     Rejected = 3,
-    Pending = 4
+    Pending = 4,
+    Returned = 5
 }
 
 public class BorrowRecord
@@ -44,6 +45,14 @@ public class BorrowRecord
 
     /// <summary>Set at approval because borrow approval also issues the requested items.</summary>
     public DateTimeOffset? IssuedAt { get; set; }
+
+    /// <summary>Set when the borrower marks items as returned.</summary>
+    public DateTimeOffset? MarkedReturnedAt { get; set; }
+
+    /// <summary>Set when an encoder confirms the return.</summary>
+    public DateTimeOffset? ReturnConfirmedAt { get; set; }
+
+    public string? ReturnConfirmedByUserId { get; set; }
 
     public string? ActionedByUserId { get; set; }
 

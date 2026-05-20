@@ -38,7 +38,7 @@ public class RequisitionRecord
 
     public string? ActionedByUserId { get; set; }
 
-    /// <summary>When set, encoder/dept head has recorded that approved items are with the requestor (in use).</summary>
+    /// <summary>When set, encoder has recorded physical issuance to the requestor.</summary>
     public DateTimeOffset? MarkedInUseAt { get; set; }
 
     /// <summary>When the requestor confirms receipt of the issued items.</summary>

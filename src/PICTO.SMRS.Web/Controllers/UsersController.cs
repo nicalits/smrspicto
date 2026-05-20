@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using PICTO.SMRS.Web.Models;
 using PICTO.SMRS.Web.Security;
@@ -46,8 +47,7 @@ public class UsersController : Controller
         var result = await _userManager.CreateAsync(user, model.Password);
         if (!result.Succeeded)
         {
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
+            ApplyIdentityErrors(ModelState, result, nameof(model.Password));
             return View(await BuildPageForCurrentUserAsync(model));
         }
 
@@ -55,8 +55,7 @@ public class UsersController : Controller
         if (!roleResult.Succeeded)
         {
             await _userManager.DeleteAsync(user);
-            foreach (var error in roleResult.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
+            ApplyIdentityErrors(ModelState, roleResult);
             return View(await BuildPageForCurrentUserAsync(model));
         }
 
@@ -70,8 +69,7 @@ public class UsersController : Controller
         if (!claimResult.Succeeded)
         {
             await _userManager.DeleteAsync(user);
-            foreach (var error in claimResult.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
+            ApplyIdentityErrors(ModelState, claimResult);
             return View(await BuildPageForCurrentUserAsync(model));
         }
 
@@ -112,8 +110,7 @@ public class UsersController : Controller
         var setName = await _userManager.SetUserNameAsync(user, model.UserName.Trim());
         if (!setName.Succeeded)
         {
-            foreach (var e in setName.Errors)
-                ModelState.AddModelError(nameof(model.UserName), e.Description);
+            ApplyIdentityErrors(ModelState, setName, nameof(model.UserName));
             return View(model);
         }
 
@@ -123,8 +120,7 @@ public class UsersController : Controller
         var update = await _userManager.UpdateAsync(user);
         if (!update.Succeeded)
         {
-            foreach (var e in update.Errors)
-                ModelState.AddModelError(nameof(model.Email), e.Description);
+            ApplyIdentityErrors(ModelState, update, nameof(model.Email));
             return View(model);
         }
 
@@ -132,16 +128,14 @@ public class UsersController : Controller
         var removeRoles = await _userManager.RemoveFromRolesAsync(user, currentRoles);
         if (!removeRoles.Succeeded)
         {
-            foreach (var e in removeRoles.Errors)
-                ModelState.AddModelError(string.Empty, e.Description);
+            ApplyIdentityErrors(ModelState, removeRoles);
             return View(model);
         }
 
         var addRole = await _userManager.AddToRoleAsync(user, model.Role);
         if (!addRole.Succeeded)
         {
-            foreach (var e in addRole.Errors)
-                ModelState.AddModelError(nameof(model.Role), e.Description);
+            ApplyIdentityErrors(ModelState, addRole, nameof(model.Role));
             return View(model);
         }
 
@@ -153,8 +147,7 @@ public class UsersController : Controller
             var pwd = await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
             if (!pwd.Succeeded)
             {
-                foreach (var e in pwd.Errors)
-                    ModelState.AddModelError(nameof(model.NewPassword), e.Description);
+                ApplyIdentityErrors(ModelState, pwd, nameof(model.NewPassword));
                 return View(model);
             }
         }
@@ -231,6 +224,25 @@ public class UsersController : Controller
             new Claim(SmrsClaimTypes.Position, position),
             new Claim(SmrsClaimTypes.Division, division)
         ]);
+    }
+
+    private static void ApplyIdentityErrors(
+        ModelStateDictionary modelState,
+        IdentityResult result,
+        string? preferredField = null)
+    {
+        foreach (var error in result.Errors)
+        {
+            var key = error.Code switch
+            {
+                "DuplicateUserName" or "InvalidUserName" => nameof(CreateUserViewModel.UserName),
+                "DuplicateEmail" or "InvalidEmail" => nameof(CreateUserViewModel.Email),
+                _ when error.Code.StartsWith("Password", StringComparison.OrdinalIgnoreCase)
+                    => preferredField ?? nameof(CreateUserViewModel.Password),
+                _ => preferredField ?? string.Empty
+            };
+            modelState.AddModelError(key, error.Description);
+        }
     }
 
     private async Task<ManageUsersViewModel> BuildPageForCurrentUserAsync(CreateUserViewModel form)

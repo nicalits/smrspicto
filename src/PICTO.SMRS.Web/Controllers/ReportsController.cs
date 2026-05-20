@@ -67,7 +67,9 @@ public sealed class ReportsController(ApplicationDbContext db) : Controller
             .SumAsync(i => (int?)i.Qty) ?? 0;
         var unitsOutForBorrowing = await db.BorrowRecordItems
             .AsNoTracking()
-            .Where(i => i.BorrowRecord != null && i.BorrowRecord.Status == BorrowStatus.Approved)
+            .Where(i => i.BorrowRecord != null
+                && i.BorrowRecord.Status == BorrowStatus.Approved
+                && i.BorrowRecord.ReturnConfirmedAt == null)
             .SumAsync(i => (int?)i.Qty) ?? 0;
         var costInRange = await db.RequisitionRecordItems
             .AsNoTracking()
@@ -133,7 +135,8 @@ public sealed class ReportsController(ApplicationDbContext db) : Controller
             .Where(i => i.InventoryItemId.HasValue
                 && allItemIds.Contains(i.InventoryItemId.Value)
                 && i.BorrowRecord != null
-                && i.BorrowRecord.Status == BorrowStatus.Approved)
+                && i.BorrowRecord.Status == BorrowStatus.Approved
+                && i.BorrowRecord.ReturnConfirmedAt == null)
             .GroupBy(i => i.InventoryItemId!.Value)
             .Select(g => new { InventoryItemId = g.Key, LastDate = g.Max(i => i.BorrowRecord!.CreatedAt) })
             .ToDictionaryAsync(g => g.InventoryItemId, g => g.LastDate);

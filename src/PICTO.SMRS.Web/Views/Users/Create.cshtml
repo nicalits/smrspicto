@@ -20,6 +20,27 @@
         {
             <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
         }
+        @if (!ViewData.ModelState.IsValid)
+        {
+            var createErrors = ViewData.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct()
+                .ToList();
+            if (createErrors.Count > 0)
+            {
+                <div class="alert alert-danger mt-4 mb-0" role="alert">
+                    <strong>Could not create the account.</strong>
+                    <ul class="mb-0 mt-2 small ps-3">
+                        @foreach (var message in createErrors)
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                </div>
+            }
+        }
 
         <section class="smrs-section" id="accounts">
             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -165,6 +186,7 @@
     <partial name="_ValidationScriptsPartial" />
     @if (canManageUsers)
     {
+    <script src="~/js/smrs-user-form-validation.js" asp-append-version="true"></script>
     <script>
         (function () {
             var editBase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(editUserUrlBase.TrimEnd('/')));
@@ -172,9 +194,23 @@
             var tbody = document.querySelector('.smrs-table-panel tbody');
             var showAddAccount = @Html.Raw(showAddAccount ? "true" : "false");
             var addUserModal = document.getElementById('addUserModal');
+            var createUserForm = document.getElementById('createUserForm');
+
+            function initCreateUserValidation() {
+                if (createUserForm && window.smrsInitCreateUserForm) {
+                    window.smrsInitCreateUserForm(createUserForm);
+                }
+            }
+
+            if (addUserModal) {
+                addUserModal.addEventListener('shown.bs.modal', initCreateUserValidation);
+            }
 
             if (showAddAccount && addUserModal && window.bootstrap) {
                 window.bootstrap.Modal.getOrCreateInstance(addUserModal).show();
+                initCreateUserValidation();
+            } else {
+                initCreateUserValidation();
             }
 
             if (!menu || !tbody) return;

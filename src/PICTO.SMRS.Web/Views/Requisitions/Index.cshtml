@@ -36,7 +36,7 @@
                                 <th>Type</th>
                                 <th>Items</th>
                                 <th>Status</th>
-                                <th>Under use</th>
+                                <th>Issuance</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                         </thead>
@@ -61,7 +61,7 @@
                                             }
                                             else if (row.MarkedInUseAt is not null)
                                             {
-                                                <span class="badge text-bg-light text-dark border">In use</span>
+                                                <span class="badge text-bg-light text-dark border">Pending receipt</span>
                                             }
                                             else
                                             {
@@ -77,6 +77,12 @@
                                         @if (row.Status == RequisitionStatus.InQueue)
                                         {
                                             <a asp-action="Edit" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">Edit</a>
+                                        }
+                                        @if (row.Status == RequisitionStatus.Approved
+                                            && row.MarkedInUseAt is not null
+                                            && row.ReceivedAt is null)
+                                        {
+                                            <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">View</a>
                                         }
                                     </td>
                                 </tr>

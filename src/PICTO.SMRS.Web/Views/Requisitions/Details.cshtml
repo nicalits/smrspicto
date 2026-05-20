@@ -55,23 +55,30 @@
                 @if (Model.Status == RequisitionStatus.Approved)
                 {
                     <div class="col-md-3">
-                        <span class="text-muted d-block">Under use</span>
-                        @if (Model.MarkedInUseAt is { } atUse)
+                        <span class="text-muted d-block">Issuance</span>
+                        @if (Model.MarkedInUseAt is { } atIssued)
                         {
-                            <span class="badge text-bg-light text-dark border">In use</span>
-                            <span class="d-block fw-semibold mt-1">@atUse.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                            <span class="badge text-bg-light text-dark border">Issued</span>
+                            <span class="d-block fw-semibold mt-1">@atIssued.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                         }
                         else
                         {
                             <span class="badge text-bg-light text-dark border">Awaiting issuance</span>
                         }
                     </div>
-                    @if (Model.ReceivedAt is { } atReceived)
+                    @if (Model.MarkedInUseAt is not null)
                     {
                         <div class="col-md-3">
-                            <span class="text-muted d-block">Received</span>
-                            <span class="badge text-bg-success">Received</span>
-                            <span class="d-block fw-semibold mt-1">@atReceived.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                            <span class="text-muted d-block">Receipt</span>
+                            @if (Model.ReceivedAt is { } atReceived)
+                            {
+                                <span class="badge text-bg-success">Received</span>
+                                <span class="d-block fw-semibold mt-1">@atReceived.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span class="badge text-bg-light text-dark border">Pending receipt</span>
+                            }
                         </div>
                     }
                 }

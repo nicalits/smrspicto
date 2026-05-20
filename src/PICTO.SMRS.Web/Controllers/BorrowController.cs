@@ -39,7 +39,9 @@ public class BorrowController : Controller
                 SlipDate = r.SlipDate,
                 ItemCount = r.Items.Count,
                 Status = r.Status,
-                IssuedAt = r.IssuedAt
+                IssuedAt = r.IssuedAt,
+                MarkedReturnedAt = r.MarkedReturnedAt,
+                ReturnConfirmedAt = r.ReturnConfirmedAt
             })
             .ToListAsync(cancellationToken);
 
@@ -333,7 +335,21 @@ public class BorrowController : Controller
         ViewData["CanTakeAction"] = canAct
             && (borrow.Status == BorrowStatus.InQueue || borrow.Status == BorrowStatus.Pending);
         ViewData["CanEdit"] = isRequestOwner && borrow.Status == BorrowStatus.InQueue;
-        ViewData["BackAction"] = canView && !isRequestOwner ? nameof(Approvals) : nameof(Index);
+        ViewData["CanMarkReturned"] = isRequestOwner
+            && borrow.Status == BorrowStatus.Approved
+            && borrow.IssuedAt is not null
+            && borrow.MarkedReturnedAt is null;
+        ViewData["CanConfirmReturn"] = canAct
+            && borrow.Status == BorrowStatus.Approved
+            && borrow.MarkedReturnedAt is not null
+            && borrow.ReturnConfirmedAt is null;
+
+        if (canView && !isRequestOwner && borrow.MarkedReturnedAt is not null && borrow.ReturnConfirmedAt is null)
+            ViewData["BackAction"] = nameof(Returns);
+        else if (canView && !isRequestOwner)
+            ViewData["BackAction"] = nameof(Approvals);
+        else
+            ViewData["BackAction"] = nameof(Index);
 
         var queuePositions = await QueuePositionHelper.GetBorrowQueuePositionsAsync(_db, cancellationToken);
         ViewData["QueuePositions"] = queuePositions;
@@ -355,6 +371,8 @@ public class BorrowController : Controller
             ApprovedAt = borrow.ApprovedAt,
             RejectedAt = borrow.RejectedAt,
             IssuedAt = borrow.IssuedAt,
+            MarkedReturnedAt = borrow.MarkedReturnedAt,
+            ReturnConfirmedAt = borrow.ReturnConfirmedAt,
             Items = borrow.Items.Select(i => new BorrowDetailsItemViewModel
             {
                 Description = i.Description,
@@ -517,6 +535,120 @@ public class BorrowController : Controller
 
         TempData["StatusMessage"] = "Borrow request placed on hold.";
         return RedirectToAction(nameof(Approvals));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkReturned(int id, CancellationToken cancellationToken)
+    {
+        var borrow = await _db.BorrowRecords
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (borrow is null)
+            return NotFound();
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId)
+            || !string.Equals(borrow.BorrowerUserId, currentUserId, StringComparison.Ordinal))
+            return Forbid();
+
+        if (borrow.Status != BorrowStatus.Approved || borrow.IssuedAt is null)
+        {
+            TempData["ErrorMessage"] = "Items must be issued before they can be marked as returned.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (borrow.MarkedReturnedAt is not null)
+        {
+            TempData["ErrorMessage"] = "Items have already been marked as returned.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        borrow.MarkedReturnedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        TempData["StatusMessage"] = "Items marked as returned. Awaiting encoder confirmation.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = SmrsPolicies.BorrowApprovalAction)]
+    public async Task<IActionResult> ConfirmReturn(int id, CancellationToken cancellationToken)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+        var borrow = await _db.BorrowRecords
+            .Include(r => r.Items)
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+        if (borrow is null)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return NotFound();
+        }
+
+        if (borrow.Status != BorrowStatus.Approved || borrow.MarkedReturnedAt is null)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            _db.ChangeTracker.Clear();
+            TempData["ErrorMessage"] = "The borrower must mark items as returned before confirmation.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (borrow.ReturnConfirmedAt is not null)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            _db.ChangeTracker.Clear();
+            TempData["ErrorMessage"] = "This return has already been confirmed.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        borrow.Status = BorrowStatus.Returned;
+        borrow.ReturnConfirmedAt = now;
+        borrow.ReturnConfirmedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var affectedItemIds = borrow.Items
+            .Where(i => i.InventoryItemId.HasValue)
+            .Select(i => i.InventoryItemId!.Value)
+            .Distinct()
+            .ToList();
+        await LowStockTracker.RefreshAsync(_db, affectedItemIds, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        TempData["StatusMessage"] = "Return confirmed.";
+        return RedirectToAction(nameof(Returns));
+    }
+
+    [HttpGet]
+    [Authorize(Policy = SmrsPolicies.BorrowApproval)]
+    public async Task<IActionResult> Returns(CancellationToken cancellationToken)
+    {
+        var rows = await _db.BorrowRecords
+            .AsNoTracking()
+            .Include(r => r.Items)
+            .Where(r => r.Status == BorrowStatus.Approved
+                && r.MarkedReturnedAt != null
+                && r.ReturnConfirmedAt == null)
+            .OrderBy(r => r.MarkedReturnedAt)
+            .Select(r => new BorrowApprovalRowViewModel
+            {
+                Id = r.Id,
+                RfNo = r.RfNo,
+                BorrowerName = r.BorrowerName,
+                BorrowerDivision = r.BorrowerDivision,
+                SlipDate = r.SlipDate,
+                ItemCount = r.Items.Count,
+                Status = r.Status,
+                IssuedAt = r.IssuedAt,
+                MarkedReturnedAt = r.MarkedReturnedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        ViewData["CanConfirmReturn"] = User.IsInRole(SmrsRoles.Admin) || User.IsInRole(SmrsRoles.Encoder);
+
+        return View(rows);
     }
 
     [HttpGet]

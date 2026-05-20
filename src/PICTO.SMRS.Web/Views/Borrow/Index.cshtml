@@ -44,7 +44,8 @@
                         <tbody>
                             @foreach (var row in Model)
                             {
-                                var statusDisplay = QueuePositionHelper.FormatQueueStatus(row.Status, queuePositions.GetValueOrDefault(row.Id));
+                                var statusDisplay = QueuePositionHelper.FormatBorrowLifecycleStatus(
+                                    row.Status, queuePositions.GetValueOrDefault(row.Id), row.IssuedAt, row.MarkedReturnedAt, row.ReturnConfirmedAt);
                                 <tr>
                                     <td>
                                         <a asp-action="Details" asp-route-id="@row.Id" class="text-decoration-none fw-semibold">@(string.IsNullOrWhiteSpace(row.RfNo) ? "—" : row.RfNo)</a>

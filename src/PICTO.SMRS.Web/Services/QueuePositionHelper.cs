@@ -61,7 +61,28 @@ public static class QueuePositionHelper
             BorrowStatus.Pending => "Pending",
             BorrowStatus.Approved => "Approved",
             BorrowStatus.Rejected => "Rejected",
+            BorrowStatus.Returned => "Returned",
             _ => status.ToString()
         };
+    }
+
+    public static string FormatBorrowLifecycleStatus(
+        BorrowStatus status,
+        int? queuePosition,
+        DateTimeOffset? issuedAt,
+        DateTimeOffset? markedReturnedAt,
+        DateTimeOffset? returnConfirmedAt)
+    {
+        if (status == BorrowStatus.Returned || returnConfirmedAt is not null)
+            return "Returned";
+
+        if (status == BorrowStatus.Approved && issuedAt is not null)
+        {
+            if (markedReturnedAt is not null)
+                return "Awaiting return confirmation";
+            return "Out";
+        }
+
+        return FormatQueueStatus(status, queuePosition);
     }
 }

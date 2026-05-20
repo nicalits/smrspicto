@@ -1,0 +1,85 @@
+@using PICTO.SMRS.Web.Models.Borrow
+@model IReadOnlyList<BorrowApprovalRowViewModel>
+@{
+    ViewData["Title"] = "Return Confirmations";
+    var canConfirmReturn = (bool?)ViewData["CanConfirmReturn"] == true;
+}
+
+<div class="smrs-page">
+    <div class="smrs-card smrs-card--page">
+        <header class="smrs-page-header">
+            <h1 class="h3 text-navy mb-1">Return Confirmations</h1>
+            <p class="text-muted small mb-0">Borrowed items marked as returned by borrowers, awaiting encoder confirmation.</p>
+        </header>
+
+        @if (TempData["StatusMessage"] is string ok)
+        {
+            <div class="alert alert-success mt-4 mb-0" role="alert">@ok</div>
+        }
+        @if (TempData["ErrorMessage"] is string err)
+        {
+            <div class="alert alert-danger mt-4 mb-0" role="alert">@err</div>
+        }
+
+        <section class="smrs-section mt-4">
+            @if (Model.Count == 0)
+            {
+                <div class="alert alert-secondary mb-0">No returns awaiting confirmation.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>RF No.</th>
+                                <th>Date</th>
+                                <th>Borrower</th>
+                                <th>Division</th>
+                                <th>Items</th>
+                                <th>Marked returned</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model)
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(row.RfNo) ? "—" : row.RfNo)</td>
+                                    <td>@row.SlipDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@row.BorrowerName</td>
+                                    <td>@row.BorrowerDivision</td>
+                                    <td>@row.ItemCount</td>
+                                    <td>
+                                        @if (row.MarkedReturnedAt is { } markedAt)
+                                        {
+                                            <span class="text-muted small">@markedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                                            <a asp-action="Details" asp-route-id="@row.Id" class="btn btn-sm btn-outline-dark">View</a>
+                                            @if (canConfirmReturn)
+                                            {
+                                                <form asp-action="ConfirmReturn" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Confirm that the borrowed items have been returned?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@row.Id" />
+                                                    <button type="submit" class="btn btn-sm btn-dark">Confirm return</button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+</div>

@@ -6,9 +6,12 @@
     ViewData["Title"] = $"Borrow {rfNo}";
     var canTakeAction = (bool?)ViewData["CanTakeAction"] == true;
     var canEdit = (bool?)ViewData["CanEdit"] == true;
+    var canMarkReturned = (bool?)ViewData["CanMarkReturned"] == true;
+    var canConfirmReturn = (bool?)ViewData["CanConfirmReturn"] == true;
     var backAction = ViewData["BackAction"]?.ToString() ?? "Index";
     var queuePositions = ViewData["QueuePositions"] as Dictionary<int, int> ?? new Dictionary<int, int>();
-    var statusDisplay = QueuePositionHelper.FormatQueueStatus(Model.Status, queuePositions.GetValueOrDefault(Model.Id));
+    var statusDisplay = QueuePositionHelper.FormatBorrowLifecycleStatus(
+        Model.Status, queuePositions.GetValueOrDefault(Model.Id), Model.IssuedAt, Model.MarkedReturnedAt, Model.ReturnConfirmedAt);
 }
 
 <div class="smrs-page">
@@ -59,6 +62,25 @@
                         <span class="badge text-bg-light text-dark border">Issued</span>
                         <span class="d-block fw-semibold mt-1">@issuedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
                     </div>
+                }
+                @if (Model.Status == BorrowStatus.Approved || Model.Status == BorrowStatus.Returned)
+                {
+                    @if (Model.MarkedReturnedAt is { } markedReturnedAt)
+                    {
+                        <div class="col-md-3">
+                            <span class="text-muted d-block">Marked returned</span>
+                            <span class="badge text-bg-light text-dark border">Returned by borrower</span>
+                            <span class="d-block fw-semibold mt-1">@markedReturnedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                    }
+                    @if (Model.ReturnConfirmedAt is { } returnConfirmedAt)
+                    {
+                        <div class="col-md-3">
+                            <span class="text-muted d-block">Return confirmed</span>
+                            <span class="badge text-bg-success">Confirmed</span>
+                            <span class="d-block fw-semibold mt-1">@returnConfirmedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm")</span>
+                        </div>
+                    }
                 }
                 @if (Model.RejectedAt is { } rejectedAt)
                 {
@@ -133,6 +155,24 @@
                     {
                         <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#holdBorrowModal">Hold</button>
                     }
+                }
+                @if (canMarkReturned)
+                {
+                    <form asp-action="MarkReturned" method="post" class="d-inline"
+                          onsubmit="return confirm('Confirm you have returned the borrowed items?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-success">Mark as returned</button>
+                    </form>
+                }
+                @if (canConfirmReturn)
+                {
+                    <form asp-action="ConfirmReturn" method="post" class="d-inline"
+                          onsubmit="return confirm('Confirm that the borrowed items have been returned?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-dark">Confirm return</button>
+                    </form>
                 }
             </div>
         </section>
